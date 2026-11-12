@@ -19,7 +19,7 @@ export default function ChatInput({
     <div className="flex gap-3 border-t border-[var(--chat-border)] p-4">
       <input
         className="chat-input h-11 flex-1 rounded-xl px-4 py-3 text-sm transition"
-        placeholder="Ask me about work related stuff..."
+        placeholder="ask me anything about my work..."
         value={value}
         disabled={loading}
         onChange={(e) => onChange(e.target.value)}

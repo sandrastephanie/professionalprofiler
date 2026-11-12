@@ -1,12 +1,26 @@
 ---
 title: Bio
 type: bio
-tags: [philosophy, career-path, backend, oop, software-developer, software-engineer, junior, career-changer]
-summary: Michael Brummer Ringdal — backend-focused software developer with a background in philosophy, professional experience since January 2025 backed by 10+ years of hobby programming.
+tags: [product-manager, fintech, b2b-saas, ux, marketing, commercial, career-path, mentor]
+summary: Sandra Stephanie Raveendran - product manager in Danish fintech and B2B SaaS with a marketing and UX background, based in Copenhagen. Makes complicated things feel simple.
 ---
 
-## Michael Brummer Ringdal
+## sandra stephanie raveendran
 
-My path to a career as a developer has not been conventional. I began my career with a Master's degree in philosophy, and what might look like a detour is now one of my greatest assets. The skillset of a developer benefits from that of a modern philosopher: both require methodical analysis, tackling complex, interdisciplinary problems, and building solid logical frameworks. While a developer solves a business problem with code, a great developer questions underlying assumptions. The philosophical mindset has shaped how I approach software development and provided me with a skillset that supports good software design.
+i like making complicated things feel simple.
 
-I've been a professional software developer since January 2025, most recently at a small company (iEDI, since September 2025) where I've taken on a wide range of responsibilities across backend development — the kind of scope a software engineer at a small company ends up owning end to end. This is backed by more than 10 years of hobby programming experience, so the toolset predates the paid job title by a long way.
+i'm a product manager in fintech and B2B SaaS, based in copenhagen, and i'm fascinated by people, systems and why we behave the way we do. i build products, but i also love building communities, ideas and conversations that help people grow.
+
+my path into product went through marketing and UX. i have an MSc in IT Product Design from Syddansk Universitet, and around 6 years of experience across UX, marketing automation and fintech. before product, i ran marketing for fintech and SaaS companies, which means i keep one eye on the commercial case for everything we build - whether it ships matters, but so does whether it should.
+
+people have called me an octopus (professionally, an "M"-shaped profile): i work on both strategic and executing levels, and i'm happy at roadmap level and in the details of a single interaction. i'm the link between business value, customer needs and the tech team.
+
+i'm hands-on. i was the first product manager at Likvido to make PRs myself, and i use AI tools like Claude Code every day to prototype, unblock delivery and learn complex domains fast.
+
+i decide on data and real customer insight, not gut feeling. and i'm known for being direct (it's literally my most common feedback).
+
+## where i am right now
+most recently Product Manager at Likvido (Visma), working on debt collection, enforcement court products and the accounting logic underneath. Likvido is merging with another Visma company, so my role was made redundant - and i'm available from 1 january 2027. see "practical info".
+
+## outside work
+i mentor women in tech (Tech Women CPH and The Soulfuls), i'm a community manager for the Danish Red Cross, and i'm hosting a webinar series on Claude Code for women in tech. i travel solo, read a lot and go to a lot of community events. (i also still play the sims.)

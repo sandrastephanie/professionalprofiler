@@ -1,51 +1,25 @@
 ---
 title: Role Fit
 type: profile
-tags: [software-developer, software-engineer, backend-developer, backend-engineer, full-stack-developer, full-stack, api-developer, junior-developer, mid-level, solution-ownership]
-summary: How Michael's background maps to common job titles — software developer, software engineer, backend developer, and full-stack developer — with honest notes on seniority and scope.
+tags: [product-manager, product-owner, product-marketing, go-to-market, commercial-lead, ux, system-owner, role-fit]
+summary: How Sandra's background maps to common job titles - Product Manager, Product Owner, Product Marketing / GTM, commercial development, and UX - with honest notes on where the depth is.
 ---
 
-## Software Developer / Software Engineer
-The most direct fit. Michael has been a professional Software Developer at
-iEDI since September 2025, building REST APIs, working across relational
-and non-relational databases, writing tests, and running CI/CD — the core
-day-to-day of a software developer or software engineer role (see
-"Software Developer @ iEDI"). That professional experience is backed by
-over 10 years of hobby programming that predates it (see Bio).
+## Product Manager
+the most direct fit and where i am now. at Likvido (Visma) i was the first dedicated PM on a portal driving ~80% of revenue, in a heavily regulated fintech domain (see "Product Manager @ Likvido"). my marketing years give me something many PMs build later: a feel for positioning, pricing and what customers actually respond to.
 
-## Backend Developer / Backend Engineer
-His strongest, most consistent focus. At iEDI he owns and troubleshoots a
-wide range of distinct production integrations and services — partner
-APIs, cron jobs, and price-catalogue/invoice/despatch advice/document
-flows — on top of REST API design, ERP and e-invoicing integrations,
-relational/non-relational databases, Docker/Kubernetes/Nomad deployment,
-and CI/CD pipelines (see "Software Developer @ iEDI" for the exact scale).
-His freelance work for
-Constellation Network — an encryption/signing/transaction SDK, plus
-adding Python language support — is backend/systems work in a different
-domain, cryptography and blockchain (see "Freelance Software Developer @
-Constellation Network").
+## Product Owner
+a strong fit. i scope and document problems, prioritise and prepare work with engineering, and i'm comfortable in the details of a backlog item. i'm hands-on enough to prototype and make PRs myself (see "Building with Claude Code").
 
-## Full-Stack Developer
-Demonstrated, though backend is still where the depth is. This CV chat
-application (see "AI CV Chat Application") is a full-stack project built
-end to end: a FastAPI/PostgreSQL backend and a Next.js/TypeScript/Tailwind
-frontend, containerized with Docker. Day-to-day professional experience
-remains backend-focused — treat the frontend side as demonstrated
-capability, not years of production frontend experience.
+## Product Marketing / Go-to-Market
+proven. i led product marketing, positioning and GTM at iEDI and ran marketing at Corpay One, with numbers to show for it: conversion doubled from 3.38% to 6.32%, leads +5%, cost per lead -6%, partner wallet share 53% to 60% (see "Marketing Manager @ Corpay One").
 
-## API Developer
-A recurring theme across his work: REST APIs at iEDI (business document
-exchange, ERP/e-invoicing integration), a small REST API in .NET/C# (see
-".NET API"), and the streaming chat API behind this application.
+## Commercial / Business Development
+a good fit where product and commercial meet. i've renegotiated supplier deals with payment providers and API partners, built partner and referral schemes, and aligned marketing with sales around a clear handover.
 
-## Seniority
-Professional tenure since January 2025 — junior by the calendar. But the
-day-to-day scope at iEDI reads above a typical junior level: solo ownership of a
-large number of production integrations and services, independent
-decisions on API/service design, and working with the team to shape
-development practices and code structure (see "Software Developer @
-iEDI"). Read this as strong junior-to-mid, with senior-level scope of
-responsibility for a company of this size — not senior-level years, and
-not (yet) demonstrated architecture-from-scratch or people-management
-experience.
+## UX / Service Design
+my education (MSc in IT Product Design) and a habit i've kept through every role: research with real users, CRO, user journeys, and turning insight into concrete product changes.
+
+## honest notes
+- my product title is recent (since April 2026), but i've worked on product questions for years from the marketing side, and in fintech since 2023.
+- i'm not an engineer, but i'm technical enough to work on APIs, integrations and data flows with engineers, and to build things myself with AI tools.

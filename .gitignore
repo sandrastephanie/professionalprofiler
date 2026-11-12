@@ -27,5 +27,4 @@ Thumbs.db
 
 # Private CV content (kept locally / on the server, not in the public repo)
 backend/resources/contact.md
-backend/resources/system-prompt.md
 backend/resources/index.json

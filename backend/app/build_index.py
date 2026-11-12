@@ -64,10 +64,10 @@ def update_skills_section(records):
 
     ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
 
-    lines = ["## Technical Skills", ""]
+    lines = ["## Skills from experience and projects", ""]
     for tag, _score in ranked:
         src_list = ", ".join(sorted(sources[tag]))
-        lines.append(f"- **{tag}** — {src_list}")
+        lines.append(f"- **{tag}** - {src_list}")
         if tag in notes:
             lines.append(f"  - Scope: {notes[tag]}")
     generated_block = "\n".join(lines)

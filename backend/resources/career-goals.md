@@ -1,16 +1,18 @@
 ---
 title: Career Goals
 type: career-goals
-tags: [career-goals, growth, learning, ambition, responsibility, potential, motivation, trajectory, software-design, software-engineering, full-stack]
-summary: What Michael is aiming for next — more responsibility and continued technical growth, building on the solution-ownership and independent design work he's already taking on at iEDI.
+tags: [career-goals, growth, learning, ambition, motivation, next-role, product-management, fintech]
+summary: What Sandra wants next - a place where she keeps learning and growing, is challenged and inspired to take on new projects; she's ambitious and has always left jobs for something more exciting.
 ---
 
-## What I'm aiming for
-Two directions, both about growing scope. One: more into software design
-and engineering, full-stack — going deeper on the frontend/architecture
-side I've started exploring (see "AI CV Chat Application"), not just
-backend. Two: more responsibility as a backend developer specifically —
-more say in how a system is designed, not just built within an existing
-structure. At iEDI I've already moved from executing tickets to owning
-integrations end-to-end and making my own design calls (see "Software
-Developer @ iEDI"); the next step in either direction builds on that.
+## what i'm looking for
+i thrive when i learn and grow. i want a work environment where i'm challenged and inspired to take on new projects - and where there's always a next thing to figure out.
+
+## ambition
+i'm ambitious, and it's no secret to any of my former employers: when i've left a job, it's because someone offered me something more exciting and better. (the exception is Likvido, where the merger made the decision for me.)
+
+## where i fit best
+product roles where the domain is complex and the job is to make it simple - fintech and B2B SaaS especially - and where the commercial side matters as much as the product. see "Role Fit" for how my background maps to specific titles.
+
+## what i bring on day one
+a brain that can't sit still, hands-on product skills, a strong commercial instinct and a lot of curiosity.

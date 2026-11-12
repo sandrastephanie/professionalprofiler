@@ -1,24 +1,21 @@
 ---
-title: Software Developer @ iEDI
+title: Head of Marketing @ iEDI
 type: experience
-tags: [backend, backend-developer, backend-engineer, software-developer, software-engineer, api-development, rest-api, erp, e-invoicing, databases, sql, ci-cd, docker, kubernetes, nomad, testing, github, integrations, cron, production-support, solution-ownership, system-design]
-dates: "September 2025 - present"
-summary: Software Developer / Backend Engineer at iEDI (Denmark, on-premise) - owns and troubleshoots production integrations and services (partner APIs, cron jobs, price-catalogue/invoice/despatch advice/document flows), makes independent design decisions, and helps shape team development practices.
-skill_notes:
-  kubernetes: "Created and managed services, ingress, and deployments through a cluster management UI; did not author raw manifests/Helm charts or design cluster architecture from scratch."
+tags: [product-marketing, positioning, go-to-market, b2b-marketing, brand, crm, hubspot, marketing-automation, email-automation, partner-marketing, referral-programme, websites, webinars, retention, edi, supply-chain, b2b-saas]
+dates: "November 2025 - March 2026"
+summary: Led product marketing, positioning and go-to-market for iEDI's EDI-as-a-Service platform - set up CRM across Sales, Support, CS and Marketing, built brand foundations, a referral partner scheme for Business Central clients, and two websites from scratch.
 ---
 
-## Role
-Software Developer, iEDI — Denmark, on-premise
-**September 2025 - present**
+## the role
+i led product marketing, positioning and go-to-market for iEDI's EDI-as-a-Service platform. EDI is how businesses exchange documents like orders, invoices and despatch advice electronically, and the customers are supply-chain-heavy industries - so a big part of the job was making a technical product understandable and building market education material.
 
-## What I did
-- Own and troubleshoot a number of distinct production integrations and services — partner API integrations, scheduled cron jobs, and services handling price catalogues, invoices, despatch advices, and other business documents.
-- Make independent decisions on API/service design, and work with the team to streamline development practices and code structure.
-- Designed and built REST APIs for exchanging high priority business documents, integrating with ERP systems and international e-invoicing.
-- Fixed a number of critical design flaws — for example, despatch advices were sometimes not delivered, or delivered with erroneous content. The redesigned flow relies on the supplier's packing slip instead of warehouse picks, resulting in no errors, leaner code, and a simpler lifecycle.
-- Worked across relational and non-relational databases.
-- Wrote unit and integration tests, technical documentation, and performed GitHub peer-reviews.
-- Built CI/CD pipelines with GitHub Actions.
-- Deployed Docker services in Kubernetes.
-- Migrated Kubernetes services to a new HashiCorp Nomad environment.
+## what i did
+- **set up the CRM** for Sales, Support, Customer Success and Marketing, so the whole company worked from one place
+- **built the brand foundations** and the messaging, plus marketing email automation
+- **set up a referral partner marketing scheme** for Microsoft Business Central clients
+- **built two new websites from scratch**
+- **built a webinar and email flow** for retention
+- laid the groundwork for enterprise demand generation
+
+## why it matters
+this was where marketing and product started to blur for me. explaining EDI well meant understanding how documents and data actually move between businesses and ERP systems, which is the same understanding i took into product at Likvido.

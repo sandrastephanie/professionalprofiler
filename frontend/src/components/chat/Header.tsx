@@ -31,12 +31,12 @@ export default function ChatHeader({ usage }: Props) {
 
         <div>
           <h1 className="chat-text text-xl font-semibold">
-            Workchat with Michael
+            chat with sandra
           </h1>
 
           <div className="mt-1 flex items-center gap-3">
             <a
-              href="https://github.com/buzzgreyday"
+              href="https://github.com/cphcircle"
               target="_blank"
               rel="noopener noreferrer"
               className="chat-text-muted flex items-center gap-1.5 text-sm transition hover:text-[var(--chat-accent)]"
@@ -45,7 +45,7 @@ export default function ChatHeader({ usage }: Props) {
               GitHub
             </a>
             <a
-              href="https://linkedin.com/in/michael-ringdal"
+              href="https://www.linkedin.com/in/sandra-stephanie-raveendran/"
               target="_blank"
               rel="noopener noreferrer"
               className="chat-text-muted flex items-center gap-1.5 text-sm transition hover:text-[var(--chat-accent)]"
