@@ -17,7 +17,7 @@ working for a top global supplier gave me real experience of B2B marketing and s
 a small family-owned company, which gave me insight into start-ups, resource management and how every single customer counts.
 
 ## Sales Advisor - Arket
-*August 2017 - 2021*
+*August 2017 - August 2021*
 
 direct sales, customer service, inventory management and visual merchandising, alongside my studies.
 
