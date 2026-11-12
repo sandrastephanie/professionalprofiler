@@ -36,7 +36,7 @@ export default function ChatHeader({ usage }: Props) {
 
           <div className="mt-1 flex items-center gap-3">
             <a
-              href="https://github.com/cphcircle"
+              href="https://github.com/sandrastephanie"
               target="_blank"
               rel="noopener noreferrer"
               className="chat-text-muted flex items-center gap-1.5 text-sm transition hover:text-[var(--chat-accent)]"
