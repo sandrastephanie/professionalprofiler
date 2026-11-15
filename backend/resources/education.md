@@ -1,14 +1,18 @@
 ---
 title: Education
 type: education
-tags: [philosophy, university-of-copenhagen, education, masters-degree, bachelors-degree]
-summary: MA and BA in Philosophy from University of Copenhagen (2015-2021).
+tags: [education, masters-degree, it-product-design, cand-it, ux, brand-design, marketing, communication, syddansk-universitet, kea]
+summary: MSc in IT Product Design (Syddansk Universitet, 2022), BA in Brand Design (KEA, 2020), AP in Marketing & Communication (KEA, 2018).
 ---
 
-## MA in Philosophy
-University of Copenhagen
-2018 - 2021
+## MSc in IT Product Design (cand.it)
+Syddansk Universitet
+September 2020 - June 2022
 
-## BA in Philosophy
-University of Copenhagen
-2015 - 2018
+## BA in Brand Design
+Københavns Erhvervsakademi (KEA)
+August 2018 - January 2020
+
+## AP in Marketing & Communication
+Københavns Erhvervsakademi (KEA)
+August 2016 - June 2018

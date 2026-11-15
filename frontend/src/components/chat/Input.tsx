@@ -1,5 +1,3 @@
-import { Send } from "lucide-react";
-
 import { Button } from "../ui/button";
 
 interface ChatInputProps {
@@ -16,10 +14,10 @@ export default function ChatInput({
   onSend,
 }: ChatInputProps) {
   return (
-    <div className="flex gap-3 border-t border-[var(--chat-border)] p-4">
+    <div className="flex gap-2.5 px-4 pt-4 pb-2 sm:px-6">
       <input
-        className="chat-input h-11 flex-1 rounded-xl px-4 py-3 text-sm transition"
-        placeholder="Ask me about work related stuff..."
+        className="chat-input h-11 min-w-0 flex-1 rounded-full px-4 py-3 text-[15px] transition"
+        placeholder="ask me about my work..."
         value={value}
         disabled={loading}
         onChange={(e) => onChange(e.target.value)}
@@ -34,9 +32,9 @@ export default function ChatInput({
       <Button
         onClick={() => onSend()}
         disabled={loading}
-        className="chat-accent-solid h-11 w-11 rounded-xl shadow-sm transition hover:brightness-110 disabled:opacity-50"
+        className="chat-send h-11 rounded-full px-5 text-[15px] transition hover:opacity-90 disabled:opacity-50"
         >
-        <Send size={18} />
+        send
       </Button>
     </div>
   );

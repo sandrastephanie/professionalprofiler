@@ -7,13 +7,14 @@ import { getUserName } from "@/lib/auth";
 import { Message, ChatHistoryMessage, Usage } from "@/types/chat";
 
 export function useChat(token: string) {
-  const user = getUserName(token);
+  const firstName = getUserName(token).split(" ")[0];
+  const greeting = firstName && firstName !== "You" ? `hi ${firstName}! 👋` : "hi! 👋";
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: `Hi ${user}! 👋`,
+      content: `${greeting} i'm sandra - or rather an AI that answers from my CV, in my own voice. ask me anything about my work in product, fintech and marketing (the real me is on LinkedIn).`,
       createdAt: new Date(0),
       status: "complete",
     },

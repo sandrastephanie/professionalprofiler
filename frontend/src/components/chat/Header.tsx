@@ -1,5 +1,5 @@
 import { Usage } from "@/types/chat";
-import { Bot } from "lucide-react";
+import Avatar from "./Avatar";
 
 interface Props {
   usage: Usage | null;
@@ -23,42 +23,41 @@ function LinkedinIcon() {
 
 export default function ChatHeader({ usage }: Props) {
   return (
-    <div className="chat-header px-6 py-5">
-      <div className="flex items-center gap-3">
-        <div className="chat-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-sm">
-          <Bot size={20} />
-        </div>
+    <div className="chat-header flex items-start gap-4 px-6 py-5">
+      <Avatar size={52} />
 
-        <div>
-          <h1 className="chat-text text-xl font-semibold">
-            Workchat with Michael
-          </h1>
+      <div className="min-w-0 flex-1">
+        <p className="chat-text-muted text-sm">
+          product manager · fintech &amp; B2B SaaS
+        </p>
+        <h1 className="chat-text text-[22px] font-bold leading-tight tracking-tight">
+          Sandra Stephanie Raveendran
+        </h1>
 
-          <div className="mt-1 flex items-center gap-3">
-            <a
-              href="https://github.com/buzzgreyday"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="chat-text-muted flex items-center gap-1.5 text-sm transition hover:text-[var(--chat-accent)]"
-            >
-              <GithubIcon />
-              GitHub
-            </a>
-            <a
-              href="https://linkedin.com/in/michael-ringdal"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="chat-text-muted flex items-center gap-1.5 text-sm transition hover:text-[var(--chat-accent)]"
-            >
-              <LinkedinIcon />
-              LinkedIn
-            </a>
-          </div>
+        <div className="mt-1 flex items-center gap-4">
+          <a
+            href="https://www.linkedin.com/in/sandra-stephanie-raveendran/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="chat-text-muted chat-link flex items-center gap-1.5 text-sm transition"
+          >
+            <LinkedinIcon />
+            LinkedIn
+          </a>
+          <a
+            href="https://github.com/sandrastephanie"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="chat-text-muted chat-link flex items-center gap-1.5 text-sm transition"
+          >
+            <GithubIcon />
+            GitHub
+          </a>
         </div>
       </div>
 
       {usage && (
-        <span className="chat-badge mt-3 inline-block rounded-full px-3 py-1 text-xs font-medium shadow-sm">
+        <span className="chat-badge shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium">
           {usage.remaining} / {usage.max} questions left
         </span>
       )}

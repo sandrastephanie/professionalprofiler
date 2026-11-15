@@ -138,8 +138,8 @@ For local Python development outside Docker:
 Clone the repository:
 
 ```bash
-git clone https://github.com/buzzgreyday/workchat.git
-cd workchat
+git clone https://github.com/sandrastephanie/professionalprofiler.git
+cd professionalprofiler
 ```
 
 Create the environment file. Both compose files read `backend/.env` **and**

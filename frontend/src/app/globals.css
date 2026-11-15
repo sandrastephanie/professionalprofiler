@@ -129,35 +129,45 @@
   }
 }
 
-/* ---- Chat theme: dark, flat, professional ---- */
+/* ---- Chat theme: light, clean, pink accent ---- */
 
 :root {
-  --chat-bg: oklch(0.16 0.01 260);
-  --chat-panel: oklch(0.2 0.012 260);
-  --chat-panel-alt: oklch(0.25 0.014 260);
-  --chat-border: oklch(1 0 0 / 10%);
-  --chat-text: oklch(0.95 0 0);
-  --chat-text-muted: oklch(0.63 0.01 260);
-  --chat-accent: oklch(0.6 0.14 245);
-  --chat-accent-soft: oklch(0.6 0.14 245 / 20%);
+  --chat-bg: #f4f5f7;
+  --chat-panel: #ffffff;
+  --chat-panel-alt: #fafbfc;
+  --chat-border: #eef0f3;
+  --chat-border-strong: #e6e8ee;
+  --chat-text: #1d2130;
+  --chat-text-muted: #6a7080;
+  --chat-accent: #db2777;
+  --chat-accent-soft: rgb(219 39 119 / 20%);
+  --chat-photo-bg: #fde2ee;
+  --chat-photo-text: #b0245f;
 }
 
 .chat-page-bg {
   background: var(--chat-bg);
+  color: var(--chat-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
 
 .chat-card {
   background: var(--chat-panel);
-  border: 1px solid var(--chat-border);
+  box-shadow: 0 10px 40px rgb(20 25 40 / 8%);
 }
 
 .chat-header {
   background: var(--chat-panel);
+}
+
+.chat-messages {
+  background: var(--chat-panel-alt);
+  border-top: 1px solid var(--chat-border);
   border-bottom: 1px solid var(--chat-border);
 }
 
 .chat-badge {
-  background: var(--chat-panel-alt);
+  background: #f1f2f5;
   color: var(--chat-text-muted);
 }
 
@@ -169,8 +179,12 @@
   color: var(--chat-text-muted);
 }
 
-.chat-accent-solid {
-  background: var(--chat-accent);
+.chat-link:hover {
+  color: var(--chat-accent);
+}
+
+.chat-send {
+  background: var(--chat-text);
   color: white;
 }
 
@@ -180,19 +194,30 @@
 }
 
 .chat-bubble-assistant {
-  background: var(--chat-panel-alt);
-  border: 1px solid var(--chat-border);
+  background: var(--chat-panel);
+  border: 1px solid #eceef2;
   color: var(--chat-text);
 }
 
 .chat-avatar {
-  background: var(--chat-accent);
-  color: white;
+  background: var(--chat-photo-bg);
+  color: var(--chat-photo-text);
+}
+
+.chat-chip {
+  background: var(--chat-panel);
+  border: 1px solid var(--chat-border-strong);
+  color: var(--chat-text);
+}
+
+.chat-chip:hover:not(:disabled) {
+  border-color: var(--chat-accent);
+  color: var(--chat-accent);
 }
 
 .chat-input {
-  background: var(--chat-panel-alt);
-  border: 1px solid var(--chat-border);
+  background: #f7f8fa;
+  border: 1px solid var(--chat-border-strong);
   color: var(--chat-text);
 }
 
@@ -206,6 +231,10 @@
   box-shadow: 0 0 0 2px var(--chat-accent-soft);
 }
 
+.chat-note {
+  color: #9aa0ad;
+}
+
 /* Subtle rotating accent sheen, shown around the bot avatar while it's replying */
 @keyframes chat-ring-spin {
   to {
@@ -215,6 +244,8 @@
 
 .chat-avatar-glow {
   position: relative;
+  /* keeps the ring (z-index -1) above the light message background */
+  isolation: isolate;
 }
 
 .chat-avatar-glow::before {
