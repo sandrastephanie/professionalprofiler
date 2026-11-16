@@ -101,7 +101,10 @@ test("nothing white is painted behind the chat", async ({
       ).colorScheme,
   );
 
-  expect(scheme).toBe("dark");
+  // "light" in this fork, whose theme.css is a light page (Michael's original
+  // is navy and asserts "dark"). The point is the same either way: the scheme
+  // matches the page, so those surfaces are not drawn for the other one.
+  expect(scheme).toBe("light");
 });
 
 test("the document cannot be scrolled off the chat at all", async ({
