@@ -1,0 +1,71 @@
+"""
+The Pydantic models, split by what they are for.
+
+`api` holds the request/response shapes the HTTP surface speaks in; `user`,
+`token` and `session` hold the domain models the repository layer returns in
+place of ORM rows. All are re-exported here so `from app.common.models import X`
+keeps working regardless of which side of that split X lives on.
+"""
+
+from app.common.models.api import (
+    ChatMessageOut,
+    ChatRequest,
+    ClaimRequest,
+    TrialRequest,
+    ConversationDetail,
+    ConversationRedacted,
+    ConversationSummary,
+    GrantRevoked,
+    IssueTokenRequest,
+    JWT,
+    Record,
+    RefreshRequest,
+    SessionInfo,
+    SessionOut,
+    TokenClaims,
+    TokenContext,
+    TokenPair,
+    Usage,
+)
+from app.common.models.conversation import (
+    ChatMessage,
+    Conversation,
+    ConversationPreview,
+    MessageRole,
+    MessageStatus,
+    ReplyStatus,
+)
+from app.common.models.session import RefreshSession
+from app.common.models.token import Grant, TokenVersion
+from app.common.models.user import User
+
+__all__ = [
+    "JWT",
+    "Grant",
+    "ChatMessage",
+    "ChatMessageOut",
+    "ChatRequest",
+    "ClaimRequest",
+    "TrialRequest",
+    "Conversation",
+    "ConversationDetail",
+    "ConversationPreview",
+    "ConversationRedacted",
+    "ConversationSummary",
+    "GrantRevoked",
+    "IssueTokenRequest",
+    "MessageRole",
+    "MessageStatus",
+    "Record",
+    "RefreshSession",
+    "RefreshRequest",
+    "ReplyStatus",
+    "SessionInfo",
+    "SessionOut",
+    "TokenClaims",
+    "TokenContext",
+    "TokenPair",
+    "TokenVersion",
+    "Usage",
+    "User",
+]

@@ -1,0 +1,166 @@
+"""
+Guest trials: a few questions for a visitor who has no link.
+
+Every other grant is issued to someone and delivered as a link. A trial is
+opened by the visitor themselves, which is what makes it the one way in that a
+stranger — or a script — can reach. So it is held by three things, each against
+a different abuse, and all checked before a grant exists:
+
+  - a proof-of-work (`pow`), so each trial costs the asker some computing, and
+    a script asking for thousands pays for thousands;
+  - one trial per address per UTC day, the address kept only as a keyed hash
+    that cannot outlive its day (`keys`);
+  - a ceiling on trials per day across everyone, so the worst a day of
+    strangers can spend is `trial_daily_limit` x `trial_max_queries` questions.
+
+And a browser that has had one is told so for `trial_cookie_days` after, by a
+signed cookie holding only the date (`cookie`), so the per-day address limit
+resetting overnight does not hand the same browser a new trial every morning.
+
+Then it is an ordinary grant — `kind="trial"`, already claimed, opened straight
+into a session — and the chat cannot tell it from any other, beyond its access
+token saying `knd: "trial"` so the client can word things for a guest.
+
+Off unless TRIAL_ENABLED: both endpoints answer 404 while it is.
+"""
+
+import secrets
+import uuid
+from datetime import date, datetime, timedelta, timezone
+
+from app.common.config import Settings
+from app.common.crypto import hash_token
+from app.common.exceptions import (
+    TrialAlreadyTried,
+    TrialAlreadyUsed,
+    TrialBudgetExhausted,
+    TrialChallengeInvalid,
+    TrialDisabled,
+)
+from app.common.logging.logging import logger
+from app.common.models import Grant, TokenPair, TokenVersion
+from app.repositories.base import (
+    RefreshSessionRepository,
+    TokenRepository,
+    TrialRepository,
+    TrialReservation,
+    UserRepository,
+)
+from app.services.auth import SessionService
+from app.services.trial import cookie, keys, pow
+from app.services.trial.pow import Challenge
+
+# The user every trial grant belongs to (created by the migration that added
+# trials). The greeting reads the grant's subject, so a guest is "Guest".
+TRIAL_USER_NAME = "Guest (trial)"
+TRIAL_SUBJECT = "Guest"
+
+__all__ = ["Challenge", "challenge", "start_trial", "trial_cookie", "TRIAL_SUBJECT"]
+
+
+def _secret(settings: Settings) -> str:
+    """The trial secret, or a 404 if trials are off."""
+    if not settings.trial_enabled or not settings.trial_secret:
+        raise TrialDisabled()
+    return settings.trial_secret
+
+
+def _refuse_if_tried(settings: Settings, secret: str, remembered: str | None, today: date) -> None:
+    """A browser carrying a valid trial cookie is not offered another."""
+    if cookie.remembers(keys.cookie_key(secret), remembered, today, settings.trial_cookie_days):
+        logger.info("Trial refused: this browser has had one")
+        raise TrialAlreadyTried()
+
+
+def challenge(settings: Settings, remembered: str | None = None, now: datetime | None = None) -> Challenge:
+    """
+    A fresh proof-of-work for a visitor to solve. Stores nothing.
+
+    Refused to a browser that has had a trial, which is also how the chat
+    learns not to offer one: it asks for a challenge to decide.
+    """
+    secret = _secret(settings)
+    _refuse_if_tried(settings, secret, remembered, (now or datetime.now(timezone.utc)).date())
+    return pow.create_challenge(keys.pow_key(secret), settings.trial_pow_max_number)
+
+
+def trial_cookie(settings: Settings, now: datetime | None = None) -> tuple[str, int]:
+    """The trial cookie's value for a trial opened now, and its max-age in seconds."""
+    day = (now or datetime.now(timezone.utc)).date()
+    return cookie.make(keys.cookie_key(_secret(settings)), day), settings.trial_cookie_days * 86400
+
+
+async def start_trial(
+    solution: str,
+    address: str,
+    *,
+    remembered: str | None = None,
+    settings: Settings,
+    users: UserRepository,
+    tokens: TokenRepository,
+    sessions: RefreshSessionRepository,
+    trials: TrialRepository,
+    session_service: SessionService,
+    now: datetime | None = None,
+) -> TokenPair:
+    """
+    Open a trial for this visitor, or say why not.
+
+    The proof-of-work is checked first, because it is the only check that costs
+    the asker rather than this server: nothing is read or written for a
+    solution that does not hold. Then the store decides address, challenge and
+    budget in one durable step, and only then is a grant made.
+
+    `remembered` is the trial cookie the browser sent, if any. Checked first:
+    it costs nothing to read, and a browser that has had a trial gets the same
+    answer whatever else is true.
+
+    Raises TrialDisabled, TrialAlreadyTried, TrialChallengeInvalid,
+    TrialAlreadyUsed or TrialBudgetExhausted.
+    """
+    secret = _secret(settings)
+    now = now or datetime.now(timezone.utc)
+    _refuse_if_tried(settings, secret, remembered, now.date())
+
+    solved = pow.verify_solution(keys.pow_key(secret), solution, now=now.timestamp())
+    if solved is None:
+        logger.warning("Trial refused: proof-of-work did not hold")
+        raise TrialChallengeInvalid()
+
+    day: date = now.date()
+    outcome = await trials.reserve(
+        day=day,
+        ip_hash=keys.address_hash(secret, day, address),
+        challenge_hash=solved,
+        daily_limit=settings.trial_daily_limit,
+    )
+    if outcome is TrialReservation.ADDRESS_USED:
+        logger.info("Trial refused: this address has had today's")
+        raise TrialAlreadyUsed()
+    if outcome is TrialReservation.CHALLENGE_USED:
+        logger.warning("Trial refused: challenge already spent")
+        raise TrialChallengeInvalid()
+    if outcome is TrialReservation.BUDGET_SPENT:
+        logger.warning("Trial refused: today's trials are all gone", extra={"daily_limit": settings.trial_daily_limit})
+        raise TrialBudgetExhausted()
+
+    guest = await users.get_by_name(TRIAL_USER_NAME) or await users.add(
+        name=TRIAL_USER_NAME, email=None, phone=None
+    )
+    grant = await tokens.add(
+        Grant(
+            id=uuid.uuid4(),
+            user_id=guest.id,
+            subject=TRIAL_SUBJECT,
+            # There is no link, so nothing will ever be presented against this
+            # hash; it only has to be unique and unguessable, like any other.
+            token_hash=hash_token(secrets.token_urlsafe(32)),
+            max_queries=settings.trial_max_queries,
+            expires_at=now + timedelta(seconds=settings.trial_ttl_seconds),
+            version=TokenVersion.V2,
+            kind="trial",
+            claimed_at=now,
+        )
+    )
+    logger.info("Trial opened", extra={"token_id": grant.id})
+    return await session_service.open_session(grant, sessions)

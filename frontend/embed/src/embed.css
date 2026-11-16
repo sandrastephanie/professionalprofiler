@@ -1,0 +1,35 @@
+/*
+ * The chat's stylesheet, for a shadow root: `globals.css` and what it imports,
+ * joined into one by `build.mjs`, so there is still one stylesheet in this
+ * project.
+ */
+@import "../../src/app/globals.css";
+
+/*
+ * What `html` does for the app, done for the element.
+ *
+ * `globals.css` puts the canvas and the colour scheme on `html`, which inside
+ * a shadow root is a selector for something that is not there. The palette
+ * itself needs no help: `build.mjs` rewrites `:root` to reach `:host` as well,
+ * because the same rule would otherwise miss too.
+ *
+ * Height is taken, not asserted — `100%` of whatever the host sized, so the
+ * page decides how big its chat is and the chat still gets a definite height
+ * for its own `height: 100%` to mean something. A host that sizes nothing
+ * gets nothing; that is the one thing EMBED.md asks of them.
+ *
+ * The font is inherited from the host page unless it names one. Unset,
+ * `var(--chat-font)` is invalid at computed-value time and `font-family`
+ * inherits from the element's parent — the page's own text. This is the one
+ * place that happens: `globals.css` never declares `--chat-font`, because a
+ * default there would be rewritten onto `:host` and win over the page.
+ * Declared here, unlayered, it also outranks the reset, which would otherwise
+ * set `:host` to the system stack.
+ */
+:host {
+  display: block;
+  height: 100%;
+  color-scheme: dark;
+  background: var(--chat-bg);
+  font-family: var(--chat-font);
+}

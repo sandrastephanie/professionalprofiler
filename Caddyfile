@@ -1,6 +1,7 @@
 {
 	# Global options.
-	# ACME_EMAIL and SITE_DOMAIN come from backend/.env via docker-compose.prod.yaml.
+	# ACME_EMAIL, SITE_DOMAIN and API_DOMAIN come from backend/.env via
+	# docker-compose.prod.yaml.
 	# Caddy does NOT reject an empty value here -- `caddy validate` reports a blank
 	# site address as valid, and it would then serve as a catch-all with no
 	# certificate. The guard is compose-side: `${SITE_DOMAIN:?}` fails the whole
@@ -9,38 +10,109 @@
 	email {$ACME_EMAIL}
 }
 
-{$SITE_DOMAIN} {
-	encode zstd gzip
+# The pieces both sites share, so the API answers under one set of rules
+# whichever address it is reached by.
 
+(security_headers) {
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		X-Frame-Options "DENY"
 	}
+}
 
+# {args[0]} is where the API sits on the site importing this: "/api" on
+# SITE_DOMAIN, where it shares a host with the frontend, and "" on API_DOMAIN,
+# where it is the whole host. The zones keep their names on both, so a client
+# has one allowance per zone whichever address it calls.
+(rate_limits) {
 	# Cheap abuse/cost protection: each /chat call bills OpenAI, and
 	# /admin/issue-token mints credentials. Limit both per client IP.
 	rate_limit {
 		zone chat_zone {
 			match {
-				path /api/chat*
+				path {args[0]}/chat*
+			}
+			key {remote_host}
+			events 30
+			window 1m
+		}
+		zone admin_zone {
+			match {
+				path {args[0]}/admin*
 			}
 			key {remote_host}
 			events 20
 			window 1m
 		}
-		zone admin_zone {
+		# Claiming and refreshing each write rows, and a claim link is a
+		# credential worth guessing at. Sized for a shared egress IP rather
+		# than one person: a company's hiring managers reach this from behind
+		# one NAT address, so several claims in the same minute is normal use.
+		zone auth_zone {
 			match {
-				path /api/admin*
+				path {args[0]}/v2/auth*
 			}
 			key {remote_host}
-			events 5
+			events 30
+			window 1m
+		}
+		# The loosest of the four, because it is the cheapest — one indexed
+		# read, no write, no OpenAI call — and the most often hit legitimately:
+		# every page load, every reload, and every token rotation asks it how
+		# many questions are left. Present so the endpoint is not the one
+		# unmetered way to probe whether a token is still good.
+		zone session_zone {
+			match {
+				path {args[0]}/session
+			}
+			key {remote_host}
+			events 60
 			window 1m
 		}
 	}
+}
 
-	# Backend API — strip /api prefix before proxying.
+(access_log) {
+	log {
+		output stdout
+		# Credentials travel as a URL query param on first load — v1 access
+		# tokens as ?token=, v2 claim tokens as ?claim=. Strip both before
+		# they ever hit the logs. A spent claim token is worth less than a
+		# live access token, but it is still a credential until it is used.
+		#
+		# Visitors' addresses are cut to their network: enough to see where
+		# traffic comes from, not who sent it — an address is personal data,
+		# and these logs have no retention policy beyond Docker's rotation.
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					delete token
+					delete claim
+				}
+				request>remote_ip ip_mask {
+					ipv4 16
+					ipv6 32
+				}
+				request>client_ip ip_mask {
+					ipv4 16
+					ipv6 32
+				}
+			}
+		}
+	}
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	import security_headers
+	import rate_limits /api
+
+	# Backend API — strip /api prefix before proxying. Still served here
+	# alongside API_DOMAIN: the same backend, for anything that calls it by
+	# this address.
 	handle_path /api/* {
 		reverse_proxy backend:8000
 	}
@@ -50,17 +122,31 @@
 		reverse_proxy frontend:3000
 	}
 
-	log {
-		output stdout
-		# Access tokens travel as a URL query param on first load
-		# (?token=...) — strip it before it ever hits the logs.
-		format filter {
-			wrap json
-			fields {
-				request>uri query {
-					delete token
-				}
-			}
-		}
-	}
+	import access_log
 }
+
+# The API on a host of its own: what the chat frontend and the pages that embed
+# it call. No prefix to strip — the backend's routes are the whole site.
+{$API_DOMAIN} {
+	encode zstd gzip
+	import security_headers
+	import rate_limits ""
+
+	reverse_proxy backend:8000
+
+	import access_log
+}
+
+# Other sites on this host, each in a file of its own.
+#
+# This Caddy owns ports 80 and 443, so anything else the host serves has to go
+# through it. Rather than write those sites in here — this repo is not tied to
+# any domain, and is not where another project's routing belongs — each drops
+# a `<name>.caddy` file into the sites directory, mounted from
+# `CADDY_SITES_DIR` (default `./caddy/sites`, see docker-compose.prod.yaml),
+# and reloads Caddy. Every such file must name its own host: a bare block
+# would become a catch-all in front of this one.
+#
+# Empty by default, and a glob that matches nothing imports nothing, so a
+# deployment with no other sites is exactly what it was before this existed.
+import /etc/caddy/sites/*.caddy

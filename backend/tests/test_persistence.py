@@ -1,0 +1,347 @@
+"""
+Chat transcript capture.
+
+The operator's whole reason for this feature is being able to read what hirers
+asked, so these assert against the rows themselves rather than the response body.
+"""
+import asyncio
+import json
+import uuid
+from datetime import timedelta
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from sqlalchemy import select
+
+from app.common.config import get_settings
+from app.common.schemas import DatabaseChatMessage, DatabaseConversation, DatabaseToken
+from app.repositories.sql import SQLTranscriptRepository
+from tests.conftest import ask, done_frame, sse_frames, stream_of
+
+
+async def _messages(db_session, role: str | None = None):
+    stmt = select(DatabaseChatMessage).order_by(DatabaseChatMessage.created_at)
+    if role:
+        stmt = stmt.where(DatabaseChatMessage.role == role)
+    return list((await db_session.execute(stmt)).scalars().all())
+
+
+async def _conversations(db_session):
+    return list((await db_session.execute(select(DatabaseConversation))).scalars().all())
+
+
+def _stream_chunks(tokens=("hi ", "from ", "mock")):
+    async def _chunks():
+        for token in tokens:
+            delta = MagicMock(content=token, tool_calls=None)
+            yield MagicMock(choices=[MagicMock(delta=delta, finish_reason=None)])
+        delta = MagicMock(content=None, tool_calls=None)
+        yield MagicMock(choices=[MagicMock(delta=delta, finish_reason="stop")])
+    return _chunks()
+
+
+async def _first_token(events):
+    """Read past the progress a turn opens with, up to the first of the reply."""
+    from app.services.chat import TokenProduced
+
+    async for event in events:
+        if isinstance(event, TokenProduced):
+            return event
+    raise AssertionError("the turn produced no reply")
+
+
+async def test_chat_persists_user_and_assistant_rows(client, issued_token, db_session):
+    resp = await ask(client, issued_token, message="what frameworks does he use?")
+    assert resp.status_code == 200
+
+    rows = await _messages(db_session)
+    assert [r.role for r in rows] == ["user", "assistant"]
+
+    user, assistant = rows
+    assert user.content == "what frameworks does he use?"
+    assert user.status == "received"
+    assert user.endpoint == "/chat/stream"
+    assert assistant.content == "hi from mock"
+    assert assistant.status == "completed"
+    # Both sides of one turn share the correlation id.
+    assert user.request_id == assistant.request_id
+    assert len(user.request_id) == 32
+    assert assistant.latency_ms is not None
+
+    conversations = await _conversations(db_session)
+    assert len(conversations) == 1
+    assert conversations[0].message_count == 2
+    assert conversations[0].subject == "test-hire"
+    assert conversations[0].company == "Acme"
+
+
+async def test_chat_stream_persists_on_client_abort(
+    client, issued_token, db_session, session_maker, openai_mock
+):
+    """
+    The case the design exists for: the client hangs up mid-reply.
+
+    Driven against the generator rather than through the test client, because
+    httpx's ASGITransport buffers the whole response — a `break` there never
+    closes the generator, so it cannot express an abort at all.
+
+    This fails outright if the recorder reuses the request-scoped session: by the
+    time a generator finalises, that session is closed.
+    """
+    from app.common.models import ChatRequest, TokenContext
+    from app.services.chat import answer
+    from app.services.chat.tooling import get_tooling
+
+    # A real token row, so the FKs resolve.
+    token_row = (await db_session.execute(select(DatabaseToken))).scalars().first()
+    token = TokenContext(
+        sub=token_row.subject, jti=str(token_row.id),
+        max_queries=token_row.max_queries, used_queries=1,
+        remaining_queries=token_row.max_queries - 1,
+        expires_at=token_row.expires_at,
+    )
+
+    openai_mock.chat.completions.create = AsyncMock(
+        side_effect=lambda **kwargs: stream_of("partial ", "never arrives")
+    )
+
+    events = answer(
+        request=ChatRequest(message="tell me everything"),
+        token=token,
+        client=openai_mock,
+        tooling=get_tooling(),
+        settings=get_settings(),
+        transcripts=SQLTranscriptRepository(session_maker),
+        endpoint="/chat/stream",
+    )
+
+    first = await _first_token(events)  # receive one token
+    assert first.text == "partial "
+    await events.aclose()               # ...then the client goes away
+
+    user_rows = await _messages(db_session, role="user")
+    assert len(user_rows) == 1, "the question must survive regardless"
+    assert user_rows[0].content == "tell me everything"
+
+    assistant_rows = await _messages(db_session, role="assistant")
+    assert len(assistant_rows) == 1
+    assert assistant_rows[0].status == "aborted"
+    assert assistant_rows[0].content == "partial "
+
+
+async def test_chat_persists_when_llm_fails(client, issued_token, db_session, openai_mock):
+    """
+    Proves the pre-write is the durability guarantee, not the terminal recorder.
+
+    The failure reaches the client as an error frame rather than an exception:
+    by the time the model breaks, a 200 and a content type are already on the
+    wire, so a stream that merely stops is indistinguishable from a dropped
+    connection.
+    """
+    openai_mock.chat.completions.create = AsyncMock(side_effect=RuntimeError("boom"))
+
+    resp = await ask(client, issued_token, message="does this survive?")
+    assert resp.status_code == 200
+    error = next(f for f in sse_frames(resp) if f["type"] == "error")
+    assert error["message"]
+    assert "RuntimeError" not in error["message"], "internals must not reach the hirer"
+
+    user_rows = await _messages(db_session, role="user")
+    assert len(user_rows) == 1
+    assert user_rows[0].content == "does this survive?"
+
+    assistant_rows = await _messages(db_session, role="assistant")
+    assert len(assistant_rows) == 1
+    assert assistant_rows[0].status == "failed"
+    assert "RuntimeError" in assistant_rows[0].error
+
+
+async def test_persistence_failure_does_not_break_chat(client, issued_token, monkeypatch):
+    """Capturing the transcript is a convenience; it must never cost the hirer a reply."""
+    async def _boom(*args, **kwargs):
+        raise RuntimeError("database on fire")
+
+    monkeypatch.setattr(
+        "app.repositories.sql.SQLTranscriptRepository.record_question", _boom
+    )
+
+    resp = await ask(client, issued_token)
+    assert resp.status_code == 200
+    assert done_frame(resp)["reply"] == "hi from mock"
+
+
+async def test_conversation_id_round_trips(client, issued_token, db_session):
+    first = await ask(client, issued_token, message="first")
+    conversation_id = done_frame(first)["conversation_id"]
+    assert conversation_id
+
+    second = await ask(
+        client, issued_token, message="second", conversation_id=conversation_id
+    )
+    assert done_frame(second)["conversation_id"] == conversation_id
+
+    conversations = await _conversations(db_session)
+    assert len(conversations) == 1
+    assert conversations[0].message_count == 4
+
+
+async def test_conversation_id_from_another_token_is_ignored(client, db_session):
+    """A guessed conversation id must not let one hirer append into another's thread."""
+    import os
+
+    async def _mint(subject):
+        resp = await client.post(
+            "/admin/issue-token",
+            headers={"X-Admin-Key": os.environ["ADMIN_KEY"]},
+            json={"subject": subject, "company": f"{subject}-co", "max_queries": 5},
+        )
+        return resp.json()["token"]
+
+    token_a = await _mint("hirer-a")
+    token_b = await _mint("hirer-b")
+
+    a_resp = await ask(client, token_a, message="from a")
+    a_conversation = done_frame(a_resp)["conversation_id"]
+
+    b_resp = await ask(
+        client, token_b, message="from b", conversation_id=a_conversation
+    )
+    assert b_resp.status_code == 200, "a bad id must not break the chat"
+    assert done_frame(b_resp)["conversation_id"] != a_conversation
+
+    conversations = await _conversations(db_session)
+    assert len(conversations) == 2
+    a_row = next(c for c in conversations if str(c.id) == a_conversation)
+    assert a_row.message_count == 2, "A's conversation must be untouched"
+
+
+async def test_chat_stream_done_event_includes_conversation_id(client, issued_token, openai_mock):
+    openai_mock.chat.completions.create = AsyncMock(return_value=_stream_chunks())
+
+    resp = await ask(client, issued_token)
+    done = done_frame(resp)
+    assert done["conversation_id"]
+
+
+async def test_a_retry_keeps_one_question_and_one_conversation(
+    client, issued_token, db_session, openai_mock
+):
+    """A first turn that failed left the client no conversation id to send back."""
+    key = str(uuid.uuid4())
+    healthy = openai_mock.chat.completions.create
+    openai_mock.chat.completions.create = AsyncMock(side_effect=RuntimeError("boom"))
+    failed = await ask(client, issued_token, question_key=key, message="does this survive?")
+    assert any(f["type"] == "error" for f in sse_frames(failed))
+
+    openai_mock.chat.completions.create = healthy
+    retried = await ask(client, issued_token, question_key=key, message="does this survive?")
+
+    assert done_frame(retried)["conversation_id"]
+    assert len(await _messages(db_session, role="user")) == 1
+    assert [r.status for r in await _messages(db_session, role="assistant")] == [
+        "failed",
+        "completed",
+    ]
+    assert len(await _conversations(db_session)) == 1
+
+
+async def test_a_retry_stores_the_question_if_the_first_attempt_could_not(
+    client, issued_token, db_session, monkeypatch
+):
+    key = str(uuid.uuid4())
+    real = SQLTranscriptRepository.record_question
+
+    async def _boom(*args, **kwargs):
+        raise RuntimeError("database on fire")
+
+    monkeypatch.setattr(SQLTranscriptRepository, "record_question", _boom)
+    await ask(client, issued_token, question_key=key, message="kept the second time")
+    monkeypatch.setattr(SQLTranscriptRepository, "record_question", real)
+
+    await ask(client, issued_token, question_key=key, message="kept the second time")
+
+    rows = await _messages(db_session, role="user")
+    assert [r.content for r in rows] == ["kept the second time"]
+
+
+async def test_a_hang_up_mid_reply_can_be_retried_for_nothing(
+    client, issued_token, db_session, session_maker, openai_mock
+):
+    """
+    The reason retries exist. Driven against the generator, like the abort test
+    above: the test client cannot express a hang-up.
+    """
+    from app.common.models import ChatRequest, TokenContext
+    from app.repositories.sql import SQLTokenRepository
+    from app.services.chat import answer
+    from app.services.chat.tooling import get_tooling
+
+    token_row = (await db_session.execute(select(DatabaseToken))).scalars().first()
+    tokens = SQLTokenRepository(db_session, notify_throttle=timedelta(hours=1))
+    key = uuid.uuid4()
+
+    spent = await tokens.spend_question(token_row.id, key, "a-hash")
+    assert spent.grant.used_queries == 1
+    assert spent.conversation_id is None
+
+    openai_mock.chat.completions.create = AsyncMock(
+        side_effect=lambda **kwargs: stream_of("partial ", "never arrives")
+    )
+    events = answer(
+        request=ChatRequest(message="tell me everything"),
+        token=TokenContext(
+            sub=token_row.subject, jti=str(token_row.id),
+            max_queries=token_row.max_queries, used_queries=1,
+            remaining_queries=token_row.max_queries - 1,
+            expires_at=token_row.expires_at,
+        ),
+        client=openai_mock,
+        tooling=get_tooling(),
+        settings=get_settings(),
+        transcripts=SQLTranscriptRepository(session_maker),
+        question_key=key,
+    )
+    await _first_token(events)
+    await events.aclose()
+
+    conversation = (await _conversations(db_session))[0]
+    retried = await tokens.spend_question(token_row.id, key, "a-hash")
+
+    assert retried.grant.used_queries == 1
+    assert retried.conversation_id == conversation.id
+
+
+async def test_a_hang_up_as_the_stream_opens_leaves_the_question_to_the_retry(
+    client, issued_token, db_session, session_maker, openai_mock
+):
+    """
+    The opening frame goes out before the question is stored, so a client gone
+    by then stores nothing and calls no model. The key has no conversation, so
+    the retry stores the question itself.
+    """
+    from app.common.models import ChatRequest, TokenContext
+    from app.services.chat import TurnStarted, answer
+    from app.services.chat.tooling import get_tooling
+
+    token_row = (await db_session.execute(select(DatabaseToken))).scalars().first()
+    token = TokenContext(
+        sub=token_row.subject, jti=str(token_row.id),
+        max_queries=token_row.max_queries, used_queries=1,
+        remaining_queries=token_row.max_queries - 1,
+        expires_at=token_row.expires_at,
+    )
+    calls = openai_mock.chat.completions.create.await_count
+
+    events = answer(
+        request=ChatRequest(message="gone already"),
+        token=token,
+        client=openai_mock,
+        tooling=get_tooling(),
+        settings=get_settings(),
+        transcripts=SQLTranscriptRepository(session_maker),
+    )
+    assert isinstance(await events.__anext__(), TurnStarted)
+    await events.aclose()
+
+    assert await _messages(db_session) == []
+    assert openai_mock.chat.completions.create.await_count == calls

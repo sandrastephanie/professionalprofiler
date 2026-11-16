@@ -1,45 +1,15 @@
 """
 Public-facing chat backend for the CV agent.
-Hirers hit /chat with a message; this calls the model with tool definitions
-mirroring search_cv() / get_full_entry(), executes them locally, and
-returns the model's final answer.
+
+Hirers hit /chat/stream with a message; this calls the model with tool
+definitions mirroring search_cv() / get_full_entry(), executes them locally, and
+streams the model's answer back.
+
+The module is only the ASGI entrypoint — `uvicorn app.main:app`, which the
+Dockerfile and both compose files name. Everything it is made of lives in
+`app/factory.py`, so that importing the factory does not read the environment
+and a test can build an application without one.
 """
-from contextlib import asynccontextmanager
+from app.factory import create_app
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-from app.common.config import DEV_MODE, ALLOWED_HOSTS
-from app.common.logging.logging import logger
-from app.openai.client import get_openai_client
-from app.routes.admin import router as admin_router
-from app.routes.chat import router as chat_router
-from app.routes.health import router as health_router
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info(f'Starting chat server, in {"DEV" if DEV_MODE else "PROD"} mode.', extra={"app": app})
-    yield
-    logger.info("Stopping chat server.", extra={"app": app})
-    logger.debug("Closing chat client.", extra={"client": get_openai_client()})
-    await get_openai_client().close()
-
-
-app = FastAPI(
-    lifespan=lifespan,
-    docs_url="/docs" if DEV_MODE else None,
-    redoc_url="/redoc" if DEV_MODE else None,
-    openapi_url="/openapi.json" if DEV_MODE else None,
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_HOSTS,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
-)
-
-app.include_router(health_router)
-app.include_router(chat_router)
-app.include_router(admin_router)
+app = create_app()

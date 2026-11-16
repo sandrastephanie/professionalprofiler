@@ -1,267 +1,363 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import "./styles/reset.css";
+@import "./styles/page.css";
+@import "./styles/chat.css";
 
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
+/* ==========================================================================
+   The scheme.
+   Everything this app looks like is decided in the two blocks below. If you
+   are here to restyle it, you should not have to read past `@layer base`.
+   ========================================================================== */
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* ---- Palette -----------------------------------------------------------
+     The defaults, and deliberately plain. These are what an embedding page
+     gets when it sets nothing; the standalone site's own look lives in
+     `theme.css`, which overrides them there and reaches nowhere else. */
+  --chat-bg: oklch(0.16 0.01 260);
+  --chat-panel: oklch(0.2 0.012 260);
+  --chat-panel-alt: oklch(0.25 0.014 260);
+  --chat-border: oklch(1 0 0 / 10%);
+  --chat-text: oklch(0.95 0 0);
+  --chat-text-muted: oklch(0.63 0.01 260);
+  --chat-accent: oklch(0.6 0.14 245);
+
+  /* Text that sits *on* the accent. Was three literal `white`s scattered
+     through the classes, which meant the accent could be changed to something
+     pale and the label on it would vanish with nothing to change. */
+  --chat-on-accent: #fff;
+
+  /* ---- Parts -----------------------------------------------------------
+     One variable per thing on screen, each defaulting to the palette colour
+     it has always used. Leave them alone and the eight colours above decide
+     everything; set one and only that part moves. The palette is the quick
+     way to restyle, these are the precise one.
+
+     Declared here, so they are rewritten onto `:host` like the palette: a
+     host that sets `--chat-accent` on the element still moves every part
+     that follows the accent, because each of these is computed on the same
+     element the host's value lands on. */
+  --chat-title-color: var(--chat-text);
+
+  --chat-user-bubble-bg: var(--chat-accent);
+  /* On the accent, so the colour made for the accent: a pale accent and pale
+     text is the pairing this used to produce. */
+  --chat-user-bubble-text: var(--chat-on-accent);
+  --chat-bot-bubble-bg: var(--chat-panel-alt);
+  --chat-bot-bubble-text: var(--chat-text);
+  --chat-bot-bubble-border: var(--chat-border);
+  /* Links in a reply. */
+  --chat-link: var(--chat-accent);
+
+  /* The dots while a reply is being written. */
+  --chat-typing: var(--chat-text-muted);
+  /* The transcript's scrollbar: its thumb, on no track. */
+  --chat-scrollbar: var(--chat-text-muted);
+  /* What the conversation fades into as it passes behind the box to type
+     in: the colour round the box. */
+  --chat-fade: var(--chat-panel);
+
+  --chat-input-bg: var(--chat-panel-alt);
+  --chat-input-text: var(--chat-text);
+  --chat-input-placeholder: var(--chat-text-muted);
+  --chat-input-border: var(--chat-border);
+  /* The border and glow when the input has focus. */
+  --chat-input-focus: var(--chat-accent);
+
+  --chat-send-bg: var(--chat-accent);
+  --chat-send-icon: var(--chat-on-accent);
+
+  /* The "questions left" pill. */
+  --chat-badge-bg: var(--chat-panel-alt);
+  --chat-badge-text: var(--chat-text-muted);
+
+  /* ---- Geometry -------------------------------------------------------- */
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* 700px. Below a modern phone's viewport, which is why it only applies
+     once the chat itself is 40rem wide — measured on the chat's container,
+     not the window, see Chat.tsx. */
+  --card-max-height: 43.75rem;
+  /* Short of the full width, so which side a message is on still shows. */
+  --bubble-max-width: 90%;
+  /* The floor under the safe-area insets in the `.shell-*` rules. */
+  --edge: 1rem;
+
+  /* ---- Motion -------------------------------------------------------------
+     How long things take. Named, so a new effect picks a pace rather than a
+     number. Not part of EMBED.md's contract: these are the chat's own. */
+  --motion-fast: 150ms;
+  --motion-bounce: 1.2s;
+  --motion-pulse: 2s;
+  --motion-stagger: 0.15s;
+  --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-colors:
+    color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
+  --motion-all: all var(--motion-fast) var(--motion-ease);
+
+  /* ---- Shape and space -------------------------------------------------- */
+  --radius-control: calc(var(--radius) * 1.4);
+  /* The same as the controls, so a bubble and a button share one corner. */
+  --radius-bubble: var(--radius-control);
+  --radius-card: calc(var(--radius) * 2.2);
+  --gutter-sm: 1rem;
+  --gutter: 1.25rem;
+  --gutter-lg: 1.5rem;
+  /* The height of a one-line composer: its line, its padding and its border. So
+     the send button beside it is exactly as tall, and the field never shrinks
+     below it. 50px at the default size, over the 44px a tap target needs. */
+  --control-height: calc(
+    max(1rem, var(--chat-font-message-size, 1rem)) * 1.5 + 1.5rem + 2px
+  );
+  --composer-max: 8rem;
+  --chat-column: 56rem;
+  /* Shadows in layers, the way light falls: a tight one where a thing touches
+     the surface, and a wide soft one around it. */
+  --shadow-small: 0 1px 2px rgb(0 0 0 / 0.16), 0 3px 8px rgb(0 0 0 / 0.1);
+  /* A message: three faint layers, and quieter than a button, because there are
+     many on screen and they hold reading text. A tight dark shadow at the contact,
+     a soft glow inside the top edge, and a wide blur around it. */
+  --shadow-bubble:
+    inset 0 1px 2px rgb(255 255 255 / 0.04),
+    0 1px 2px rgb(0 0 0 / 0.14),
+    0 4px 14px rgb(0 0 0 / 0.08);
+  /* A field set into the surface rather than raised from it. */
+  --shadow-sunk: inset 0 1px 3px rgb(0 0 0 / 0.16);
+  /* What makes a button a button (`.button`): its colour, a gradient and four
+     shadows, as if lit from above. Change one here and every button follows. */
+  --button-color: var(--chat-send-bg);
+  /* The gradient and the glow are worked out from the colour, so a new colour
+     brings its own: see the @supports rule below. Without it, a flat button and a
+     neutral glow. */
+  --button-gradient: none;
+  --button-light: inset 0 1px 0 rgb(255 255 255 / 0.35); /* Light along the top. */
+  --button-dark: inset 0 -2px 0 rgb(0 0 0 / 0.2); /* Shade along the bottom. */
+  --button-contact: 0 1px 2px rgb(0 0 0 / 0.4); /* Where it meets the page. */
+  /* A soft glow beneath. The negative spread keeps it under the button rather
+     than around it. */
+  --button-glow: 0 4px 10px -4px rgb(0 0 0 / 0.2);
+  --button-shadow:
+    var(--button-light),
+    var(--button-dark),
+    var(--button-contact),
+    var(--button-glow);
+  /* Pressed, the light goes out and the shade moves inside. */
+  --button-shadow-pressed: inset 0 1px 3px rgb(0 0 0 / 0.2);
+  /* Hover only brightens, and barely. Nothing moves or grows. */
+  --button-hover: brightness(1.03);
+  --shadow-card: 0 25px 50px -12px rgb(0 0 0 / 0.25);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/* Darker versions of the button's colour, for everything but the light along the
+   top, so its darkest edge is still its own colour. Only the lightness moves: mixing with
+   black lowers the saturation too, and turned the coral brown. */
+@supports (color: oklch(from red l c h)) {
+  :root {
+    --button-gradient: linear-gradient(
+      var(--button-color),
+      oklch(from var(--button-color) calc(l - 0.06) c h)
+    );
+    --button-dark: inset 0 -2px 0 oklch(from var(--button-color) calc(l - 0.17) c h);
+    --button-contact: 0 1px 2px oklch(from var(--button-color) calc(l - 0.34) c h);
+    --button-glow: 0 4px 10px -4px
+      oklch(from var(--button-color) calc(l - 0.14) c h / 0.6);
+    --button-shadow-pressed: inset 0 1px 3px
+      oklch(from var(--button-color) calc(l - 0.24) c h);
+  }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--chat-border);
+    outline-color: color-mix(in oklab, var(--chat-accent) 50%, transparent);
   }
-  body {
-    @apply bg-background text-foreground;
-  }
+
   html {
-    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
+  body {
+    height: 100%;
+    background: var(--chat-bg);
+    color: var(--chat-text);
+  }
+
+  /* The body weight, when a host names one. Unset, this is invalid at
+     computed-value time and `font-weight` inherits: the browser's normal
+     standalone, the host page's weight when embedded. `build.mjs` rewrites
+     `:root` to reach `:host` too. The title asks for its own weight by role. */
+  :root {
+    font-weight: var(--chat-font-weight);
+  }
+
 }
 
-/* ---- Chat theme: light, clean, pink accent ---- */
+/* ==========================================================================
+   The shell, and the recipes.
+   ========================================================================== */
 
-:root {
-  --chat-bg: #f4f5f7;
-  --chat-panel: #ffffff;
-  --chat-panel-alt: #fafbfc;
-  --chat-border: #eef0f3;
-  --chat-border-strong: #e6e8ee;
-  --chat-text: #1d2130;
-  --chat-text-muted: #6a7080;
-  --chat-accent: #db2777;
-  --chat-accent-soft: rgb(219 39 119 / 20%);
-  --chat-photo-bg: #fde2ee;
-  --chat-photo-text: #b0245f;
-}
-
-.chat-page-bg {
+/**
+ * The canvas, not just the page.
+ *
+ * A phone shows more than the document — the area a rubber-band scroll drags
+ * into view, the strip an on-screen keyboard uncovers before the layout
+ * catches up — and the browser paints all of that from `html`. It used to
+ * inherit a white `--background`, which is the band that showed under the chat.
+ *
+ * `color-scheme` is the other half: it decides the surfaces the page does not
+ * own at all, the scrollbars and the default canvas among them, and no
+ * background can reach those.
+ */
+html {
+  color-scheme: dark;
   background: var(--chat-bg);
-  color: var(--chat-text);
-  font-family: var(--font-sans), system-ui, sans-serif;
+
+  /* The page is exactly one screen tall, so document scrolling is not a thing
+     this app does. Making it structurally impossible is what turns "there is
+     probably nowhere to scroll to" into "there is nowhere to scroll to" — the
+     transcript has its own scroller and is unaffected. */
+  overflow: hidden;
+  overscroll-behavior: none;
+
+  /* The one place the viewport arithmetic happens, and the reason `body` and
+     `main` only say `height: 100%`.
+     `--app-height` is written by `useViewportHeight` from the *visual*
+     viewport, the only measurement iOS updates for the keyboard. `100dvh` is
+     the fallback and covers three cases that should all behave exactly as they
+     did before this existed: the first paint, a browser with no Visual
+     Viewport API, and a pinch-zoom, where the measured height stops meaning
+     "the space this layout has". */
+  height: var(--app-height, 100dvh);
 }
 
-.chat-card {
-  background: var(--chat-panel);
-  box-shadow: 0 10px 40px rgb(20 25 40 / 8%);
+/**
+ * The standalone page's insets, for the parts that meet the screen's edge.
+ *
+ * The page is edge to edge: a top bar, the chat, a footer. So the padding is
+ * no longer one frame around a card but belongs to whatever touches each
+ * edge — the top bar clears the notch, the footer the home indicator, and
+ * all three the sides in landscape.
+ *
+ * `max()` against the insets rather than a bare `env()`: they are 0 on a
+ * device without cutouts, so a bare one would put the bars' text flush
+ * against the bezel. The floor is `--edge`. The chat's own band takes the
+ * insets alone, with no floor: its background is meant to reach the edge,
+ * and its column is already narrower than the screen wherever that shows.
+ *
+ * The layout no longer sets `viewportFit: "cover"` (see its viewport export),
+ * so every inset here resolves to 0 and the floors are what apply: the
+ * browser itself keeps the page clear of the notch and the home indicator.
+ * The env() terms stay so that turning `cover` back on needs no change here.
+ */
+.shell-top {
+  padding-block-start: max(0.75rem, env(safe-area-inset-top));
 }
 
-.chat-header {
-  background: var(--chat-panel);
+.shell-bottom {
+  padding-block-end: max(0.5rem, env(safe-area-inset-bottom));
 }
 
-.chat-messages {
-  background: var(--chat-panel-alt);
-  border-top: 1px solid var(--chat-border);
-  border-bottom: 1px solid var(--chat-border);
+.shell-sides {
+  padding-inline-start: max(
+    var(--edge),
+    env(safe-area-inset-left)
+  );
+  padding-inline-end: max(
+    var(--edge),
+    env(safe-area-inset-right)
+  );
 }
 
-.chat-badge {
-  background: #f1f2f5;
-  color: var(--chat-text-muted);
+.shell-sides-bleed {
+  padding-inline-start: env(safe-area-inset-left);
+  padding-inline-end: env(safe-area-inset-right);
 }
 
-.chat-text {
-  color: var(--chat-text);
-}
-
-.chat-text-muted {
-  color: var(--chat-text-muted);
-}
-
-.chat-link:hover {
-  color: var(--chat-accent);
-}
-
-.chat-send {
-  background: var(--chat-text);
-  color: white;
-}
-
-.chat-bubble-user {
-  background: var(--chat-accent);
-  color: white;
-}
-
-.chat-bubble-assistant {
-  background: var(--chat-panel);
-  border: 1px solid #eceef2;
-  color: var(--chat-text);
-}
-
-.chat-avatar {
-  background: var(--chat-photo-bg);
-  color: var(--chat-photo-text);
-}
-
-.chat-chip {
-  background: var(--chat-panel);
-  border: 1px solid var(--chat-border-strong);
-  color: var(--chat-text);
-}
-
-.chat-chip:hover:not(:disabled) {
-  border-color: var(--chat-accent);
-  color: var(--chat-accent);
-}
-
-.chat-input {
-  background: #f7f8fa;
-  border: 1px solid var(--chat-border-strong);
-  color: var(--chat-text);
-}
-
-.chat-input::placeholder {
-  color: var(--chat-text-muted);
-}
-
-.chat-input:focus {
-  outline: none;
-  border-color: var(--chat-accent);
-  box-shadow: 0 0 0 2px var(--chat-accent-soft);
-}
-
-.chat-note {
-  color: #9aa0ad;
-}
-
-/* Subtle rotating accent sheen, shown around the bot avatar while it's replying */
-@keyframes chat-ring-spin {
-  to {
-    transform: rotate(360deg);
+/**
+ * The footer, out of the way while someone types on a phone or tablet.
+ *
+ * Keyed to the composer having focus on a touch screen, because that is what
+ * brings the on-screen keyboard up — rather than measuring the viewport for a
+ * keyboard-sized loss, which iOS and Android report differently and a
+ * rotation or a browser toolbar can fake. With the keyboard up, space is
+ * scarcest; the footer's links are nobody's business mid-question, and the
+ * composer then sits directly on the keyboard. Blur and it comes back.
+ *
+ * `pointer: coarse` keeps a desktop, where focus brings no keyboard, as it
+ * is. A tablet with a hardware keyboard loses the footer while typing too,
+ * which is the price of not guessing.
+ */
+@media (pointer: coarse) {
+  main:has(.chat-field:focus) .site-footer {
+    display: none;
   }
 }
 
-.chat-avatar-glow {
-  position: relative;
-  /* keeps the ring (z-index -1) above the light message background */
-  isolation: isolate;
+/**
+ * The composer's focus state.
+ *
+ * One class because it is one decision made of three
+ * declarations — the default outline goes, the border takes the accent, and a
+ * ring is drawn outside it. Split across rules, two thirds of it
+ * could be changed without the third.
+ */
+.chat-field:focus {
+  outline: none;
+  border-color: var(--chat-input-focus);
+  /* Derived, not re-typed: the focus colour at 20%. Mixing with
+     `transparent` premultiplies, so it is that hue and nothing else. */
+  box-shadow: 0 0 0 2px
+    color-mix(in oklab, var(--chat-input-focus) 20%, transparent);
 }
 
-.chat-avatar-glow::before {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: 9999px;
-  background: conic-gradient(
-    from 0deg,
-    var(--chat-accent),
-    transparent 35%,
-    transparent 65%,
-    var(--chat-accent)
-  );
-  animation: chat-ring-spin 2.4s linear infinite;
-  z-index: -1;
+/**
+ * Type, by part.
+ *
+ * Each is three properties read from
+ * optional variables, and the unset case is the design: with no fallback, a
+ * family or weight nobody named is invalid at computed-value time and simply
+ * inherits — the chat's own `--chat-font`, or the host page's font. So a host
+ * can name a face for the replies alone and leave everything else be.
+ *
+ *   --chat-font-message         replies and questions, the bubbles
+ *   --chat-font-message-weight
+ *   --chat-font-message-size    1rem unset
+ *   --chat-font-input           the text being typed
+ *   --chat-font-ui              the small print: the questions-left pill
+ */
+.chat-message {
+  font-family: var(--chat-font-message);
+  font-weight: var(--chat-font-message-weight);
+  font-size: var(--chat-font-message-size, 1rem);
+}
+
+/* A gap between a reply's blocks — paragraphs, lists, code — of most of a
+   line, in the message's own size: the reset takes every margin away, and a
+   two-paragraph answer ran together as one. Between siblings only, so a
+   bubble's first and last lines sit on its padding, and a reply set as
+   plain text (a host's `bot-bubble`, EMBED.md) starts on its line. */
+.chat-message > * + * {
+  margin-block-start: 0.75em;
+}
+
+.chat-message a {
+  color: var(--chat-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Never under 16px, whatever the messages are set to: below it iOS zooms the
+   page when the field takes focus and leaves the layout offset behind the
+   keyboard. Larger follows the messages, so typed and sent stay one size. */
+.chat-field {
+  font-family: var(--chat-font-input);
+  font-size: max(1rem, var(--chat-font-message-size, 1rem));
+}
+
+.chat-ui {
+  font-family: var(--chat-font-ui);
 }
 
 /* Typing indicator dots */
@@ -278,14 +374,34 @@
   }
 }
 
+/* A slow breath, so a long wait does not look like a frozen page. */
+@keyframes chat-progress-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
 .chat-typing-dot {
-  animation: chat-typing-bounce 1.2s ease-in-out infinite;
+  animation: chat-typing-bounce var(--motion-bounce) ease-in-out infinite;
 }
 
 .chat-typing-dot:nth-child(2) {
-  animation-delay: 0.15s;
+  animation-delay: var(--motion-stagger);
 }
 
 .chat-typing-dot:nth-child(3) {
-  animation-delay: 0.3s;
+  animation-delay: calc(var(--motion-stagger) * 2);
+}
+
+/* With reduced motion asked for, they hold still. The words and dots stay, so a reply
+   being written still shows. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-typing-dot,
+  .chat-progress {
+    animation: none;
+  }
 }

@@ -1,41 +1,158 @@
-import { Button } from "../ui/button";
+import { useId } from "react";
+import { ArrowUp } from "lucide-react";
 
-interface ChatInputProps {
-  value: string;
-  loading: boolean;
-  onChange: (value: string) => void;
-  onSend: () => void;
-}
+import { useControls } from "./ChatProvider";
+import { useAutoResize } from "@/hooks/useAutoResize";
+import {
+  COMPOSER_PLACEHOLDER,
+  NO_SESSION,
+  TRIAL_NOTICE,
+  TRY_IT,
+} from "@/lib/copy";
+import { MAX_MESSAGE_CHARS } from "@/lib/limits";
 
-export default function ChatInput({
-  value,
-  loading,
-  onChange,
-  onSend,
-}: ChatInputProps) {
-  return (
-    <div className="flex gap-2.5 px-4 pt-4 pb-2 sm:px-6">
-      <input
-        className="chat-input h-11 min-w-0 flex-1 rounded-full px-4 py-3 text-[15px] transition"
-        placeholder="ask me about my work..."
-        value={value}
-        disabled={loading}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            onSend();
-          }
-        }}
-      />
+// Where the trial button stands in for the composer: on offer, under way, or
+// failed and worth another go. Used up and all-gone are dead ends the
+// greeting explains, so the shut composer stays for those.
+const OFFERS_TRIAL = new Set(["available", "starting", "failed"]);
 
+export default function ChatInput() {
+  const {
+    input,
+    loading,
+    // No usable session — an unopened claim link, one already spent, or an
+    // allowance that has run out. Separate from `loading` because it does not
+    // clear on its own.
+    disabled,
+    // Why it is shut, shown in place of the prompt. Running out of questions
+    // and never having had a session are both dead ends, but not the same one.
+    disabledReason,
+    setInput,
+    sendMessage,
+    trial,
+    startTrial,
+  } = useControls();
 
-      <Button
-        onClick={() => onSend()}
-        disabled={loading}
-        className="chat-send h-11 rounded-full px-5 text-[15px] transition hover:opacity-90 disabled:opacity-50"
+  const shut = loading || disabled;
+
+  const boxRef = useAutoResize(input);
+  const noticeId = useId();
+  const lengthId = useId();
+
+  // No link, and a trial on offer: the composer would only be a shut box, so
+  // the way in goes where it was.
+  if (OFFERS_TRIAL.has(trial)) {
+    const starting = trial === "starting";
+
+    return (
+      <div className="trial-offer">
+        <button
+          type="button"
+          onClick={() => startTrial()}
+          disabled={starting}
+          aria-describedby={noticeId}
+          className="button button-wide"
         >
-        send
-      </Button>
+          {starting ? "Starting…" : TRY_IT}
+        </button>
+        <p id={noticeId} className="trial-notice">
+          {TRIAL_NOTICE}
+        </p>
+      </div>
+    );
+  }
+
+  // Shown once something is typed, so an empty composer stays a quiet one.
+  const counting = !shut && input.length > 0;
+  const atLimit = input.length >= MAX_MESSAGE_CHARS;
+
+  return (
+    <div className="composer">
+      {/* A part (EMBED.md): the box the question is typed in, exactly the
+          field's size, with the send button inside it, for a host page to
+          draw on — a ring, a glow — with CSS of its own. The box rather than
+          the field, because a textarea takes no ::before or ::after to draw
+          with. */}
+      <div className="composer-box" part="composer">
+        <textarea
+          // A textarea rather than an input: a question worth asking a CV often
+          // runs to two sentences, and there was no way to break a line — Enter
+          // sent, and nothing else did anything.
+          ref={boxRef}
+          rows={1}
+          // 16px at every width (`.chat-field`): under it iOS zooms the page the
+          // moment the field takes focus, and does not zoom back out.
+          className="composer-field chat-field"
+          data-counting={counting || undefined}
+          // Short on purpose, all three of them. A textarea soft-wraps, so a
+          // placeholder wider than the box wraps to a second line inside a
+          // one-row field and the composer scrolls before anything is typed.
+          // The long version of why the chat is shut is already in the
+          // transcript, where there is room for it.
+          placeholder={
+            disabled
+              ? (disabledReason ?? NO_SESSION)
+              : COMPOSER_PLACEHOLDER
+          }
+          aria-label="Your question"
+          aria-describedby={counting ? lengthId : undefined}
+          // The server refuses anything longer (MAX_MESSAGE_CHARS); stopping
+          // here means nobody types a paragraph only to be told so.
+          maxLength={MAX_MESSAGE_CHARS}
+          value={input}
+          disabled={shut}
+          // Growing with the question is `useAutoResize`'s job now — keyed on the
+          // value, so clearing on send shrinks the box back instead of leaving it
+          // standing at the height of a question already asked.
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter still sends, because that is what a chat box does. Shift
+            // holds it open for a second line.
+            if (
+              e.key === "Enter" &&
+              !e.shiftKey
+            ) {
+              e.preventDefault();
+              sendMessage();
+            }
+          }}
+        />
+        {counting && (
+          <span
+            id={lengthId}
+            // Polite, and only at the limit: a count announced on every key
+            // would drown out what is being typed.
+            aria-live={atLimit ? "polite" : "off"}
+            className="composer-count"
+            data-full={atLimit || undefined}
+          >
+            {input.length} / {MAX_MESSAGE_CHARS}
+          </span>
+        )}
+
+        <button
+          type="button"
+          // Pressing the button must not take focus from the field. On a phone
+          // that blur lowers the keyboard and brings the footer back, the
+          // composer moves up under the finger, and the tap lands beside the
+          // button — so the first tap did nothing and only a second one sent.
+          // Keeping focus keeps the layout still, and leaves the keyboard up
+          // for the next question. Keyboard activation is unaffected.
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => sendMessage()}
+          disabled={shut}
+          aria-label="Send question"
+          className="button button-send"
+          // A part (EMBED.md): the send button, for a host to shape — a
+          // circle, say — where its colours are already variables.
+          part="send"
+        >
+          {/* Up, into the conversation, as the button to its end points down
+              to the latest: one pair. A paper plane was first, the most
+              familiar send there is, and the least of a set with anything. */}
+          <ArrowUp size={18} strokeWidth={2.5} aria-hidden="true" />
+        </button>
+      </div>
     </div>
   );
 }

@@ -21,11 +21,22 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
+    environment:
+      # Listed without a value on purpose. Compose then forwards it only when it
+      # is set in the shell, so `OPENAI_MODEL=gpt-4.1-mini docker compose up -d
+      # backend` pins an eval arm without editing anything, and an unset one
+      # leaves whatever backend/.env says intact. Writing `${OPENAI_MODEL:-}`
+      # instead would inject an empty string and silently override the env file.
+      - OPENAI_MODEL
     # Dev only. entrypoint.sh runs `alembic upgrade head` and then execs "$@",
     # so this replaces its default uvicorn invocation. --reload-dir keeps the
-    # watcher on the application package instead of the whole bind mount, which
-    # would otherwise include /app/.venv and alembic/.
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app
+    # watcher off the whole bind mount, which would otherwise include
+    # /app/.venv and alembic/. resources/ is watched because the CV index is
+    # built at startup: editing a record reloads the app and rebuilds it, with
+    # no command to remember. --reload-include is needed with it — uvicorn's
+    # watcher matches *.py only by default, so the markdown would be watched
+    # in name and ignored in fact.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app --reload-dir resources --reload-include '*.py' --reload-include '*.md'
     healthcheck:
       # python, not curl: the python:3.13-slim base image ships no curl, so the
       # previous probe could only ever fail with "executable file not found".
@@ -64,6 +75,17 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      # Whose CV this is. Read on the server per request, so changing one of
+      # these is a restart rather than a rebuild — unlike NEXT_PUBLIC_API_URL
+      # above, which next build inlines into the browser bundle.
+      #
+      # `${VAR-default}`, not `${VAR:-default}`: the colon form also substitutes
+      # when the variable is set but empty, which would make "I have no LinkedIn"
+      # render the author's.
+      OWNER_NAME: ${OWNER_NAME-Sandra}
+      OWNER_GITHUB_URL: ${OWNER_GITHUB_URL-https://github.com/sandrastephanie}
+      OWNER_LINKEDIN_URL: ${OWNER_LINKEDIN_URL-https://www.linkedin.com/in/sandra-stephanie-raveendran/}
+      OWNER_WEBSITE_URL: ${OWNER_WEBSITE_URL-}
     depends_on:
       - backend
     volumes:

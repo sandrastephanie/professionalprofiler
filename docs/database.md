@@ -14,3 +14,89 @@ Use Alembic if docker container was taken down or schemas was changed:
 ```bash
 docker compose exec backend alembic upgrade head
 ```
+
+## Tables
+
+| table | what it holds |
+|---|---|
+| `users` | One row per **company**, deduplicated on name. `users.name` is the company, not a person. |
+| `tokens` | One row per **grant**: the person (`subject`), job title, quota and expiry. In v1 the JWT in the link *was* the grant; in v2 the row outlives the claim link and every token derived from it, and `version` says which. |
+| `refresh_tokens` | One row per session within a grant — a hirer on a laptop and the same hirer on a phone are two rows. Rotation keeps the old row and chains it to its successor through `rotated_to`, which is what makes a replayed token recognisable rather than merely unknown. |
+| `conversations` | One chat session, with `subject`/`company`/`job_title` snapshotted from the token. |
+| `chat_messages` | Two rows per turn — the question as received, and the reply as it finished. |
+| `question_keys` | One row per question paid for: the client's key, a SHA-256 of the message made by the server, how many times it has run, and where it was recorded. It is what makes a retry free. Deleted after a day. |
+| `trial_requests` | One row per guest trial opened today: the day, the challenge that paid for it, and a keyed, day-scoped hash of the visitor's address — never the address. Earlier days are deleted as each new trial is requested. See [privacy.md](privacy.md#guest-trials). |
+| `trial_budget` | Trials opened per UTC day, against `TRIAL_DAILY_LIMIT`. A date and a number. |
+
+`tokens.kind` is `link` for a grant issued to someone, `trial` for one a guest
+opened. Every trial grant belongs to the one user named `Guest (trial)`.
+
+`chat_messages.request_id` is 32 hex characters, W3C trace-id shaped. It ties the
+user row and assistant row of one turn together, and is the column a future
+OpenTelemetry `trace_id` drops straight into.
+
+## Reading what hirers asked
+
+Normally through the admin API (see `docs/deployment.md`). Directly, when the API
+is down or for ad-hoc digging:
+
+```bash
+docker compose -f docker-compose.prod.yaml exec -T db \
+  sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+    SELECT c.created_at, c.subject, c.company, m.role, left(m.content, 80) AS content
+    FROM chat_messages m
+    JOIN conversations c ON c.id = m.conversation_id
+    ORDER BY m.created_at DESC LIMIT 50;"'
+```
+
+## Retention and erasure
+
+Message content is scrubbed after `CHAT_RETENTION_DAYS` (default 30) by
+`scripts/purge-chat-content.sh`, run nightly from cron. It nulls `content` and
+stamps `redacted_at`, keeping the row, its counts and its timings — `content_chars`
+preserves the size signal after the text is gone.
+
+To erase one conversation immediately, use `POST /admin/conversations/{id}/redact`.
+
+Expired refresh sessions are deleted outright by
+`scripts/purge-expired-sessions.sh`, on the same nightly schedule. Deletion rather
+than redaction, because there is no operational record worth keeping in a session
+that can no longer authenticate anything — the conversations it produced are
+their own rows and are untouched — and the table grows without bound otherwise:
+every rotation inserts a row, so one hirer refreshing on a 15-minute access token
+adds roughly a hundred rows a week.
+
+Only rows past their own expiry (plus `SESSION_GRACE_DAYS`, default 7) are
+touched. Revoked-but-unexpired rows are kept deliberately: they are what replay
+detection reads to tell a stolen token from an unknown one, and clearing them
+early would turn a detectable replay into a plain "invalid token".
+
+**Deletion order matters.** Every foreign key here is `ondelete="RESTRICT"`, so
+rows cannot be removed piecemeal and `DELETE FROM users` alone will fail. A full
+subject-erasure request has to walk the chain:
+
+```
+refresh_tokens  ->  chat_messages  ->  conversations  ->  tokens  ->  users
+```
+
+The one exception is `refresh_tokens.rotated_to`, the self-referencing link that
+chains a rotated session to its successor. That one is `SET NULL`: it is an audit
+pointer rather than an ownership edge, and under `RESTRICT` a row could not be
+removed while any surviving row still pointed at it — which is exactly what the
+session purge does when it clears an expired predecessor out from under a live
+successor. Taking a whole chain out in one statement works under either setting;
+this is about partial and single-row deletes.
+
+Question keys are deleted after a day by `scripts/purge-question-keys.sh`: nobody
+retries yesterday's question, and each one holds a hash of it.
+
+Guest trials clean up after themselves: `trial_requests` rows only ever hold
+today, because each trial request deletes the earlier days first, and
+`scripts/purge-trial-requests.sh` does the same nightly for days nobody asked. What is in a
+row is described in [privacy.md](privacy.md#guest-trials).
+
+**Backups lag the purge.** `scripts/backup-db.sh` keeps 7 daily, 4 weekly and 6
+monthly dumps, so redacted content survives in backups for up to ~6 months after
+it is scrubbed from the database. The honest position is a written retention
+statement covering backups and letting the rotation age it out, not per-dump
+surgery.

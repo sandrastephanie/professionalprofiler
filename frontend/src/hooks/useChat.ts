@@ -1,155 +1,320 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
+import { getGrantId, isTrial } from "@/lib/auth";
+import { MAX_MESSAGE_CHARS } from "@/lib/limits";
+import { newId } from "@/lib/utils";
+import {
+  GENERIC_FAILURE_MESSAGE,
+  NO_QUESTIONS_LEFT,
+  NO_SESSION,
+} from "@/lib/copy";
+import {
+  failureMessage,
+  isQuotaExhausted,
+  isRetryable,
+} from "@/lib/failure";
+import { useConversationMemory } from "@/hooks/useConversationMemory";
+import { useTranscript } from "@/hooks/useTranscript";
+import { useUsage } from "@/hooks/useUsage";
 import { chatService } from "@/services/chat.service";
-import { getUserName } from "@/lib/auth";
-import { Message, ChatHistoryMessage, Usage } from "@/types/chat";
+import type {
+  AuthFetch,
+  SessionStatus,
+  TrialState,
+} from "@/types/session";
 
-export function useChat(token: string) {
-  const firstName = getUserName(token).split(" ")[0];
-  const greeting = firstName && firstName !== "You" ? `hi ${firstName}! 👋` : "hi! 👋";
+/**
+ * One turn of the conversation, end to end.
+ *
+ * What is left here is orchestration and nothing else: what the transcript,
+ * the allowance and the stored conversation have to say to one another while a
+ * question is in flight. The copy, the error-to-copy mapping, the greeting,
+ * the transcript reducer, the persistence and the usage polling all moved out,
+ * and each of them can now be read — and changed — without reading this.
+ */
+export function useChat({
+  accessToken,
+  status,
+  authFetch,
+  trial = "unavailable",
+  owner = "",
+  seedQuestion,
+}: {
+  accessToken: string;
+  status: SessionStatus;
+  authFetch: AuthFetch;
+  trial?: TrialState;
+  /** Whose CV this is, for the messages that name them. */
+  owner?: string;
+  seedQuestion?: string;
+}) {
+  // Hook order is load-bearing. The greeting rewrite is an effect inside
+  // `useTranscript` and the sessionStorage restore is one inside
+  // `useConversationMemory`; effects run in the order their hooks were called,
+  // and a restored transcript has to be the last word on what is on screen.
+  const { messages, dispatch } = useTranscript({
+    status,
+    accessToken,
+    trial,
+    owner,
+  });
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: `${greeting} i'm sandra - or rather an AI that answers from my CV, in my own voice. ask me anything about my work in product, fintech and marketing (the real me is on LinkedIn).`,
-      createdAt: new Date(0),
-      status: "complete",
-    },
-  ]);
+  const {
+    usage,
+    setUsage,
+    refresh: refreshUsage,
+    markExhausted,
+  } = useUsage({ status, accessToken, authFetch });
 
-  const [history, setHistory] =
-  useState<ChatHistoryMessage[]>([]);
-
-  const [usage, setUsage] = useState<Usage | null>(null);
-
-  const [input, setInput] = useState("");
-
+  // Derived, never stored. A turn that broke leaves its bubble `error`, and
+  // `loading` falling out of that is exactly what reopens the composer without
+  // anything having to remember to.
   const loading =
     messages.at(-1)?.status === "streaming";
 
+  // Which hirer this transcript belongs to. Everything cached is keyed on it,
+  // so a second link opened in the same tab starts clean rather than showing
+  // the previous one's questions.
+  const grantId = accessToken
+    ? getGrantId(accessToken)
+    : "";
 
-  const addMessage = (message: Message) => {
-    setMessages((prev) => [
-      ...prev,
-      message,
-    ]);
-  };
+  const { memory, remember } =
+    useConversationMemory({
+      grantId,
+      messages,
+      dispatch,
+      settled: !loading,
+    });
 
+  // Seeded, not sent. A link that arrives with a question puts it in the
+  // composer for the hirer to read, edit or delete — asking on their behalf
+  // would spend one of a handful of questions on wording they never saw.
+  //
+  // The initial value only, so nothing re-seeds over what they are typing.
+  // That makes the seed a first-render concern: the embed sets `about` on the
+  // element before it connects, which is the render this reads.
+  //
+  // Cut to the length limit, like anything typed: a seed comes from a link or
+  // the host page, and a long one would only be refused when sent.
+  const [input, setInput] = useState(
+    (seedQuestion ?? "").slice(0, MAX_MESSAGE_CHARS),
+  );
 
-  const updateLastMessage = (
-    updater: (message: Message) => Message
+  // Nothing to send with, so the composer stays shut rather than letting the
+  // hirer type a question into a 401 — or into a 429, once the allowance is
+  // known to be gone.
+  const outOfQuestions = usage?.remaining === 0;
+  const disabled =
+    status !== "ready" || outOfQuestions;
+
+  let disabledReason: string | null = null;
+
+  if (disabled) {
+    disabledReason = outOfQuestions ? NO_QUESTIONS_LEFT : NO_SESSION;
+  }
+
+  // `loading` only changes once React has rendered, so two sends in the same
+  // tick would both read it as false. A ref is true the moment it is set.
+  const inFlight = useRef(false);
+
+  // The question that failed, and the key it was paid for under. In memory on
+  // purpose: a reload returns to the last settled transcript, where it is gone.
+  const [failed, setFailed] = useState<{
+    text: string;
+    key: string;
+  } | null>(null);
+
+  // One attempt at a question. The same key goes out every time for the same
+  // question, which is what stops the server charging for it again.
+  const runTurn = async (
+    text: string,
+    key: string,
   ) => {
-    setMessages((prev) => {
-      if (prev.length === 0) {
-        return prev;
+    inFlight.current = true;
+    setFailed(null);
+
+    // Whether this attempt can be tried again. Offered only once the turn is
+    // over, in `finally`: the error frame arrives before the stream closes,
+    // and a Try again shown in that gap was a button that did nothing, since
+    // a second turn is refused while the first is still in flight.
+    let retryable = false;
+
+    try {
+      await chatService.stream(
+        authFetch,
+        {
+          message: text,
+          history: memory.history,
+          history_signature:
+            memory.historySignature,
+          conversation_id: memory.conversationId,
+        },
+        key,
+        {
+          onProgress(code) {
+            dispatch({
+              type: "assistant/progress",
+              progress: code,
+            });
+          },
+
+          onToken(value) {
+            dispatch({
+              type: "assistant/token",
+              value,
+            });
+          },
+
+          onDone(
+            nextHistory,
+            nextUsage,
+            nextConversationId,
+            nextSignature,
+          ) {
+            setUsage(nextUsage);
+
+            // The id only arrives on the first turn; later frames carry null
+            // and must not erase the one already held, or the next question
+            // opens a second conversation for the same person.
+            remember({
+              type: "remembered",
+              memory: {
+                history: nextHistory,
+                conversationId:
+                  nextConversationId ??
+                  memory.conversationId,
+                historySignature: nextSignature,
+              },
+            });
+
+            dispatch({
+              type: "assistant/completed",
+            });
+          },
+
+          // The turn broke. The backend sends this frame rather than just
+          // stopping, precisely so a failure is distinguishable from a dropped
+          // connection — and it carries a string already fit to show someone.
+          onError(message) {
+            dispatch({
+              type: "assistant/failed",
+              content:
+                message ||
+                GENERIC_FAILURE_MESSAGE,
+            });
+
+            retryable = true;
+
+            // The question was already paid for — quota is spent before the
+            // model is called — but usage only rides a `done` frame, so the
+            // header is a turn behind until this puts it right.
+            void refreshUsage();
+          },
+        },
+      );
+    } catch (error) {
+      console.error(error);
+
+      // Only a *quota* 429 means the allowance is gone. Never a rate-limit
+      // 429, which would strand someone at zero questions they still have.
+      if (isQuotaExhausted(error)) {
+        markExhausted();
       }
 
-      const next = [...prev];
+      dispatch({
+        type: "assistant/failed",
+        content: failureMessage(
+          error,
+          isTrial(accessToken),
+          owner,
+        ),
+      });
 
-      next[next.length - 1] =
-        updater(next[next.length - 1]);
+      if (isRetryable(error)) {
+        retryable = true;
 
-      return next;
-    });
+        // Paid for or not depends on how far it got, and only the server knows.
+        void refreshUsage();
+      }
+    } finally {
+      inFlight.current = false;
+
+      if (retryable) {
+        setFailed({ text, key });
+      }
+    }
   };
 
-
   const sendMessage = async (
-  question?: string
-) => {
+    question?: string,
+  ) => {
+    const text =
+      typeof question === "string"
+        ? question.trim()
+        : input.trim();
 
-  const text =
-    typeof question === "string"
-      ? question.trim()
-      : input.trim();
-
-    if (!text || loading) {
+    if (
+      !text ||
+      inFlight.current ||
+      loading ||
+      disabled
+    ) {
       return;
     }
 
+    // Before the first await, so a second send in this tick is already refused.
+    inFlight.current = true;
 
-    addMessage({
-      id: crypto.randomUUID(),
-      role: "user",
+    dispatch({
+      type: "user/asked",
+      id: newId(),
       content: text,
-      createdAt: new Date(),
-      status: "complete",
+      at: new Date(),
     });
-
 
     setInput("");
 
+    dispatch({
+      type: "assistant/opened",
+      id: newId(),
+      at: new Date(),
+    });
 
-    try {
-
-      // Create empty assistant message
-      // that will receive streamed chunks
-      addMessage({
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: "",
-        createdAt: new Date(),
-        status: "streaming",
-      });
-
-
-      await chatService.stream(
-  token,
-  {
-    message: text,
-    history,
-  },
-  {
-    onToken(value) {
-      updateLastMessage((message) => ({
-        ...message,
-        content: message.content + value,
-      }));
-    },
-
-    onDone(history, usage) {
-      setHistory(history);
-      setUsage(usage);
-
-      updateLastMessage((message) => ({
-        ...message,
-        status: "complete",
-      }));
-    },
-
-    onError(message) {
-      console.error(message);
-    },
-  },
-);
-
-
-    } catch (error) {
-
-      console.error(error);
-
-
-      updateLastMessage((message) => ({
-        ...message,
-        content:
-          "Oops, either your token has reached it's limits or something went wrong. This project is still being developed.",
-        status: "error",
-      }));
-
-    }
+    await runTurn(text, newId());
   };
 
+  // Not behind `disabled`: at zero questions the composer is shut, and the
+  // question that failed may have been the last one.
+  const canRetry =
+    failed !== null &&
+    !loading &&
+    status === "ready";
+
+  const retry = async () => {
+    if (!canRetry || inFlight.current) {
+      return;
+    }
+
+    inFlight.current = true;
+    dispatch({ type: "assistant/reopened" });
+
+    await runTurn(failed.text, failed.key);
+  };
 
   return {
     messages,
     input,
     loading,
+    disabled,
+    disabledReason,
     usage,
+    canRetry,
 
     setInput,
     sendMessage,
+    retry,
   };
 }

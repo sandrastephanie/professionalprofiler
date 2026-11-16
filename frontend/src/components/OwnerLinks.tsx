@@ -1,0 +1,106 @@
+import type { Owner } from "@/lib/owner";
+
+function GithubIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+  );
+}
+
+function WebsiteIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+/**
+ * How a site is named in the footer: its host, without a leading "www.", so
+ * the link says where it goes. The URL as given if it will not parse.
+ */
+function siteName(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function LinkedinIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+      <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.61 0 4.28 2.38 4.28 5.47v6.27zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z" />
+    </svg>
+  );
+}
+
+/**
+ * The owner's profiles, on the page around the chat rather than inside it.
+ *
+ * Part of chat.mringdal.com, not of the chat: an embedding page already says
+ * who it belongs to, and links inside the element would be a second, smaller
+ * copy of its own. Rendered by page.tsx, which the embed never reaches.
+ *
+ * A link with no URL configured is left out rather than rendered dead — an
+ * owner without a GitHub is not an owner with a broken GitHub link.
+ *
+ * The owner's own site comes first, and opens in this tab rather than a new
+ * one: it is where someone who came for the chat goes next, not a profile on
+ * another service to glance at and come back from.
+ */
+export default function OwnerLinks({
+  owner,
+}: {
+  owner: Owner;
+}) {
+  if (!hasOwnerLinks(owner)) {
+    return null;
+  }
+
+  return (
+    <nav
+      aria-label={`${owner.name} elsewhere`}
+      className="owner-links"
+    >
+      {owner.websiteUrl && (
+        <a
+          href={owner.websiteUrl}
+          className="owner-link chat-ui"
+        >
+          <WebsiteIcon />
+          {siteName(owner.websiteUrl)}
+        </a>
+      )}
+      {owner.githubUrl && (
+        <a
+          href={owner.githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="owner-link chat-ui"
+        >
+          <GithubIcon />
+          GitHub
+        </a>
+      )}
+      {owner.linkedinUrl && (
+        <a
+          href={owner.linkedinUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="owner-link chat-ui"
+        >
+          <LinkedinIcon />
+          LinkedIn
+        </a>
+      )}
+    </nav>
+  );
+}
+
+/** Whether there is anything for the footer to show. */
+export function hasOwnerLinks(owner: Owner): boolean {
+  return Boolean(owner.websiteUrl || owner.githubUrl || owner.linkedinUrl);
+}

@@ -1,0 +1,527 @@
+/* The chat itself (components/chat), the same on its own page and in the embed.
+   Responsive rules here ask the chat's container, never the window: a chat in
+   a narrow dialog on a wide screen has a narrow chat's room. */
+@layer components {
+  /* There for a screen reader, and nothing else. */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .chat-root {
+    container-type: inline-size;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* `height` rather than repeating the viewport arithmetic: the chat fills what
+     it is given. */
+  .chat-frame {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: var(--chat-column);
+    height: 100%;
+  }
+
+  /* For a chat set into somebody else's page. The cap applies from a 40rem-wide
+     container: it sits below a modern phone's viewport, so applying it
+     everywhere left dead background around the card on the smallest screens. */
+  .chat-frame-card {
+    overflow: hidden;
+    border: 1px solid var(--chat-border);
+    border-radius: var(--radius-card);
+    background: var(--chat-panel);
+    box-shadow: var(--shadow-card);
+  }
+
+  @container (width >= 40rem) {
+    .chat-frame-card {
+      max-height: var(--card-max-height);
+    }
+  }
+
+  /* The chat's own header, for a host that has none. */
+  .chat-header {
+    padding: var(--gutter) var(--gutter-lg);
+    border-bottom: 1px solid var(--chat-border);
+    background: var(--chat-panel);
+  }
+
+  .chat-header-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .chat-header .usage-badge {
+    margin-top: 0.75rem;
+  }
+
+  /* No fallback on the family, on purpose: unset, it is invalid at computed-value
+     time, `font-family` inherits, and the title is in the body face. */
+  .chat-title {
+    color: var(--chat-title-color);
+    font-family: var(--chat-font-title);
+    font-size: var(--chat-font-title-size, 1.25rem);
+    font-weight: var(--chat-font-title-weight, 600);
+    line-height: 1.4;
+  }
+
+  .chat-owner {
+    font-family: var(--chat-font, ui-sans-serif, system-ui, sans-serif);
+  }
+
+  .usage-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    background: var(--chat-badge-bg);
+    color: var(--chat-badge-text);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    box-shadow: var(--shadow-small);
+  }
+
+  /* `min-height`, because a flex item's automatic minimum size is its content:
+     without it this box refuses to shrink below the whole transcript.
+     `overscroll-behavior` keeps a flick at either end from chaining out into
+     the document behind it. Positioned, so a message's `offsetTop` is
+     measured from it (useScrollToQuestion); a size container, so the newest
+     reply can be sized from its height; and its scroll a timeline, for the
+     button to its end (below).
+
+     A column of the messages and, held to its foot, the box to type in
+     (`.chat-dock`): the conversation runs on behind the box to the bottom
+     of the chat and fades out under it, where it used to stop at a hard
+     line above it. No padding at the foot, for the dock to sit on the edge;
+     its sides are the box's too.
+
+     The scrollbar is a thin thumb on nothing — no track, no arrows — in
+     `--chat-scrollbar`. Two ways, because no one way reaches every browser:
+     Firefox takes the standard properties and draws no arrows on a thin bar;
+     Chrome draws arrows even on a thin one, and drops them only through its
+     own ::-webkit-scrollbar, which it ignores wherever the standard
+     properties are set — so where it has that, they are put back to auto. */
+  .chat-log {
+    position: relative;
+    container-type: size;
+    scroll-timeline: --transcript y;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    padding: var(--gutter-lg) var(--gutter-lg) 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--chat-scrollbar) transparent;
+  }
+
+  @supports selector(::-webkit-scrollbar) {
+    .chat-log {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+
+    .chat-log::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .chat-log::-webkit-scrollbar-track,
+    .chat-log::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    .chat-log::-webkit-scrollbar-button {
+      display: none;
+    }
+
+    /* Inset in a clear border, so the thumb is a slim rounded line rather
+       than a slab against the edge. */
+    .chat-log::-webkit-scrollbar-thumb {
+      border: 2px solid transparent;
+      border-radius: 9999px;
+      background: var(--chat-scrollbar) padding-box;
+    }
+  }
+
+  /* `scrollbar="none"` (EMBED.md): no scrollbar at all, both ways, for the
+     WebKit builds and app web views (the DuckDuckGo browser) that predate
+     the standard property. Only the element can name its own
+     ::-webkit-scrollbar; a host's `::part()` stops short of it. The
+     standalone site has no host, and these match nothing there. */
+  :host([scrollbar="none"]) .chat-log {
+    scrollbar-width: none;
+  }
+
+  :host([scrollbar="none"]) .chat-log::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Growing to fill what is left, so a short conversation still has the
+     box at the foot of the chat. */
+  .chat-messages {
+    flex: 1 0 auto;
+  }
+
+  .chat-messages > :not(:last-child) {
+    margin-block-end: 1rem;
+  }
+
+  /* The box to type in, held to the foot of what scrolls, over a slight
+     fade: from `--chat-fade`, not quite solid, at the bottom to nothing a
+     little above the box. The conversation passing behind goes out softly
+     rather than at an edge, and still shows faintly to the bottom.
+     The box's own sides are the transcript's (above). */
+  .chat-dock {
+    position: sticky;
+    bottom: 0;
+    padding-block-start: var(--gutter-lg);
+    background: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--chat-fade) 85%, transparent),
+      transparent
+    );
+  }
+
+  .chat-dock .composer {
+    padding-inline: 0;
+  }
+
+  /* The room under the newest question, so it can be scrolled to the top
+     however short its reply: the reply after it is at least a view tall,
+     less about a question's height and the box to type in at the foot.
+     Approximate — a question of three lines
+     stops a little short of the top — where exact meant measuring in script
+     on every token. The greeting, with no question before it, keeps its
+     own height. */
+  .message-user ~ .message-bot:nth-last-child(1 of .message-bot) {
+    --room: calc(
+      100cqh - 5rem - var(--gutter-lg) - var(--control-height) -
+        2 * var(--gutter-sm)
+    );
+
+    min-height: var(--room);
+  }
+
+  /* After a failure, Try again comes under the reply, so the room leaves
+     space for it — two lines of it, as on a phone, and its gap. Without
+     this it sat half under the box to type in, and a tap on its lower half
+     went to the box. */
+  .chat-messages:has(> .button-retry)
+    .message-user
+    ~ .message-bot:nth-last-child(1 of .message-bot) {
+    min-height: calc(var(--room) - 5.5rem);
+  }
+
+  /* Smooth to the end, for the button; still for anyone who asks for less
+     motion. The scroll to a new question asks for instant itself. */
+  @media (prefers-reduced-motion: no-preference) {
+    .chat-log {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* To the end of the transcript, while there is more below than shows:
+     round, raised, centred just above the box to type in. Quiet, in the raised surface and
+     the text colour, because it is a way to move, not the thing to press.
+
+     Hidden, and shown by the scroll position alone, a scroll-driven
+     animation: shown until the last 5rem, fading over the next two, gone for
+     the last three. Those three are blank — the padding and the reply's
+     margin — so the room's few pixels of slack (above), and a phone's scroll
+     that stops a fraction short of the end, never call it up. With nothing
+     to scroll there is no timeline, and it stays hidden; so it does in a
+     browser without scroll-driven animations (Firefox, for now), where the
+     transcript scrolls by hand. */
+  .chat-jump {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    translate: -50% 0;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--chat-border);
+    border-radius: 9999px;
+    background: var(--chat-panel-alt);
+    color: var(--chat-text);
+    box-shadow: var(--shadow-small);
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    animation: chat-jump-away linear both;
+    animation-timeline: --transcript;
+    animation-range: calc(100% - 5rem) calc(100% - 3rem);
+  }
+
+  @keyframes chat-jump-away {
+    from {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    to {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+  }
+
+  .chat-jump:focus-visible {
+    outline: 2px solid var(--chat-input-focus);
+    outline-offset: 2px;
+  }
+
+  /* Top-aligned, not stretched: the newest reply's row is held a view
+     tall for the room under its question, and a stretched bubble filled all
+     of it, an empty box the height of the screen. */
+  .message {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .message-user {
+    justify-content: flex-end;
+  }
+
+  .message-bot {
+    justify-content: flex-start;
+  }
+
+  .message-bubble {
+    min-width: 0;
+    max-width: var(--bubble-max-width);
+    padding: 0.75rem 1rem;
+    overflow-wrap: anywhere;
+    border-radius: var(--radius-bubble);
+    box-shadow: var(--shadow-bubble);
+  }
+
+  .message-user .message-bubble {
+    background: var(--chat-user-bubble-bg);
+    color: var(--chat-user-bubble-text);
+  }
+
+  .message-bot .message-bubble {
+    border: 1px solid var(--chat-bot-bubble-border);
+    background: var(--chat-bot-bubble-bg);
+    color: var(--chat-bot-bubble-text);
+  }
+
+  .typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding-block: 0.25rem;
+  }
+
+  /* The bubble's own text colour, not the muted one: this is to be read. */
+  .chat-progress {
+    animation: chat-progress-pulse var(--motion-pulse) ease-in-out infinite;
+  }
+
+  .chat-typing-dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background: var(--chat-typing);
+  }
+
+  /* No link, and a trial on offer: the way in goes where the composer was. */
+  .trial-offer {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: var(--gutter-sm);
+  }
+
+  .trial-notice {
+    color: var(--chat-text-muted);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    text-align: center;
+  }
+
+  .composer {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    padding: var(--gutter-sm);
+  }
+
+  /* The `composer` part (EMBED.md): positioned and rounded like the field
+     in it, so what a host draws on the box with ::before or ::after, at
+     `inset: 0` and `border-radius: inherit`, lies exactly on the field.
+
+     The send button sits inside it, at its end: smaller than a one-line
+     field and centred in its height, the same space round it below and to
+     the side. Held to the bottom corner, so a question that grows to more
+     lines grows away from it. Beside the field, as tall as it, it was the
+     heaviest thing in the window. */
+  .composer-box {
+    --send-size: 2.25rem;
+    --send-inset: calc((var(--control-height) - var(--send-size)) / 2);
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    border-radius: var(--radius-control);
+  }
+
+  /* The size and focus are `.chat-field`, in globals.css. */
+  .composer-field {
+    flex: 1;
+    min-height: var(--control-height);
+    max-height: var(--composer-max);
+    /* The right side keeps clear of the send button inside the box. */
+    padding: 0.75rem var(--control-height) 0.75rem 1rem;
+    resize: none;
+    border: 1px solid var(--chat-input-border);
+    border-radius: var(--radius-control);
+    background: var(--chat-input-bg);
+    color: var(--chat-input-text);
+    line-height: 1.5;
+    box-shadow: var(--shadow-sunk);
+    transition: var(--motion-colors);
+  }
+
+  .composer-field::placeholder {
+    color: var(--chat-input-placeholder);
+  }
+
+  /* Room for the count, once there is one, left of the send button. */
+  .composer-field[data-counting] {
+    padding-right: calc(var(--control-height) + 4rem);
+  }
+
+  .composer-count {
+    position: absolute;
+    right: var(--control-height);
+    bottom: 0.5rem;
+    color: var(--chat-input-placeholder);
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1rem;
+    pointer-events: none;
+  }
+
+  .composer-count[data-full] {
+    color: var(--chat-send-bg);
+  }
+
+  /* The one kind of button: the send colour, with the gradient and four
+     shadows in globals.css. Anything else named here changes its size, never what it is. */
+  .button {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding-inline: 0.625rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    outline-style: none;
+    background-color: var(--button-color);
+    background-image: var(--button-gradient);
+    background-clip: padding-box;
+    color: var(--chat-send-icon);
+    font-size: 0.875rem;
+    /* 600, as a weight every host is likely to load: the website has no 500, and
+       a browser falls back to the lighter 400, too thin on the send colour. */
+    font-weight: 600;
+    line-height: 1.25rem;
+    white-space: nowrap;
+    user-select: none;
+    box-shadow: var(--button-shadow);
+    transition: var(--motion-all);
+  }
+
+  .button svg {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    pointer-events: none;
+  }
+
+  /* Only under a mouse: a touch screen keeps :hover on the last button tapped. */
+  @media (hover: hover) {
+    .button:hover {
+      filter: var(--button-hover);
+    }
+  }
+
+  .button:focus-visible {
+    border-color: var(--chat-accent);
+    box-shadow:
+      0 0 0 3px color-mix(in oklab, var(--chat-accent) 50%, transparent),
+      var(--button-shadow);
+  }
+
+  .button:active {
+    background-image: none;
+    box-shadow: var(--button-shadow-pressed);
+  }
+
+  /* The press moves it down a pixel. Reduced motion keeps the shadow, which still
+     says what happened. */
+  @media (prefers-reduced-motion: no-preference) {
+    .button:active {
+      translate: 0 1px;
+    }
+  }
+
+  .button:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    background-image: none;
+    box-shadow: none;
+  }
+
+  /* The arrow at the size and weight of the arrow to the end (MessageList),
+     so the two are one pair: 18px, a stroke of 2.5. */
+  .button-send svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .button-send {
+    position: absolute;
+    right: var(--send-inset);
+    bottom: var(--send-inset);
+    width: var(--send-size);
+    height: var(--send-size);
+    padding: 0;
+    /* The field's corner, less the space round the button: the two curves
+       run alongside each other. */
+    border-radius: calc(var(--radius-control) - var(--send-inset));
+  }
+
+  .button-wide {
+    min-height: var(--control-height);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  /* Stays in the log's flow, under the reply it belongs to. */
+  .button-retry {
+    align-self: flex-start;
+    max-width: 100%;
+    white-space: normal;
+  }
+}

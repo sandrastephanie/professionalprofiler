@@ -1,16 +1,18 @@
+import os
+import uuid
+
+from app.common.config import MAX_QUESTION_ATTEMPTS, get_settings
+from tests.conftest import ask, done_frame, key_header, sse_frames, stream_of
+
 async def test_chat_requires_auth(client):
-    resp = await client.post("/chat", json={"message": "hi"})
+    resp = await client.post("/chat/stream", headers=key_header(), json={"message": "hi"})
     assert resp.status_code == 401
 
 
 async def test_chat_happy_path(client, issued_token):
-    resp = await client.post(
-        "/chat",
-        headers={"Authorization": f"Bearer {issued_token}"},
-        json={"message": "hi"},
-    )
+    resp = await ask(client, issued_token)
     assert resp.status_code == 200
-    body = resp.json()
+    body = done_frame(resp)
     assert body["reply"] == "hi from mock"
     assert body["usage"]["max"] == 5
     assert body["usage"]["used"] == 1
@@ -18,13 +20,9 @@ async def test_chat_happy_path(client, issued_token):
 
 
 async def test_chat_response_history_omits_system_prompt(client, issued_token):
-    resp = await client.post(
-        "/chat",
-        headers={"Authorization": f"Bearer {issued_token}"},
-        json={"message": "hi", "history": [{"role": "system", "content": "injected"}]},
-    )
+    resp = await ask(client, issued_token, history=[{"role": "system", "content": "injected"}])
     assert resp.status_code == 200
-    assert all(m["role"] != "system" for m in resp.json()["history"])
+    assert all(m["role"] != "system" for m in done_frame(resp)["history"])
 
 
 async def test_chat_stream_history_has_one_assistant_reply(client, issued_token, openai_mock):
@@ -44,42 +42,63 @@ async def test_chat_stream_history_has_one_assistant_reply(client, issued_token,
 
     resp = await client.post(
         "/chat/stream",
-        headers={"Authorization": f"Bearer {issued_token}"},
+        headers={"Authorization": f"Bearer {issued_token}", **key_header()},
         json={"message": "hi"},
     )
     assert resp.status_code == 200
 
-    done = next(
-        json.loads(line.removeprefix("data: "))
-        for line in resp.text.splitlines()
-        if line.startswith("data: ") and '"reply"' in line
-    )
+    done = done_frame(resp)
     assert done["reply"] == "hi from mock"
     assert [m["role"] for m in done["history"]] == ["user", "assistant"]
     assert done["history"][-1]["content"] == "hi from mock"
 
 
-async def test_chat_tool_call_loop_is_bounded(client, issued_token, openai_mock):
-    """A model that never stops asking for tools must terminate, not spin on paid API calls."""
+async def test_tool_call_loop_is_bounded(client, issued_token, openai_mock):
+    """
+    A model that never stops asking for tools must terminate, not spin on paid
+    API calls — and the hirer must still get an answer. Exhausting the budget
+    used to hand back an empty reply; the last call now goes out with tools off.
+    """
+    import json
     from unittest.mock import AsyncMock, MagicMock
 
     from app.common.config import MAX_TOOL_ROUNDS
 
-    tool_call = MagicMock(id="call_1")
-    tool_call.function = MagicMock(name="search", arguments="{}")
-    message = MagicMock(content=None, tool_calls=[tool_call])
-    message.model_dump = MagicMock(return_value={"role": "assistant", "content": None})
-    completion = MagicMock(choices=[MagicMock(finish_reason="tool_calls", message=message)])
-    openai_mock.chat.completions.create = AsyncMock(return_value=completion)
+    def _wants_tools():
+        async def _chunks():
+            call = MagicMock(index=0, id="call_1")
+            call.function = MagicMock(arguments="{}")
+            call.function.name = "search_cv"
+            yield MagicMock(choices=[MagicMock(delta=MagicMock(content=None, tool_calls=[call]), finish_reason=None)])
+            yield MagicMock(
+                choices=[MagicMock(delta=MagicMock(content=None, tool_calls=None), finish_reason="tool_calls")]
+            )
+
+        return _chunks()
+
+    def _answers():
+        async def _chunks():
+            yield MagicMock(
+                choices=[MagicMock(delta=MagicMock(content="what I found so far", tool_calls=None), finish_reason=None)]
+            )
+            yield MagicMock(choices=[MagicMock(delta=MagicMock(content=None, tool_calls=None), finish_reason="stop")])
+
+        return _chunks()
+
+    create = AsyncMock(side_effect=[*[_wants_tools() for _ in range(MAX_TOOL_ROUNDS)], _answers()])
+    openai_mock.chat.completions.create = create
 
     resp = await client.post(
-        "/chat",
-        headers={"Authorization": f"Bearer {issued_token}"},
+        "/chat/stream",
+        headers={"Authorization": f"Bearer {issued_token}", **key_header()},
         json={"message": "hi"},
     )
     assert resp.status_code == 200
-    assert resp.json()["reply"] == ""
-    assert openai_mock.chat.completions.create.await_count == MAX_TOOL_ROUNDS
+
+    done = done_frame(resp)
+    assert done["reply"] == "what I found so far"
+    assert create.await_count == MAX_TOOL_ROUNDS + 1
+    assert create.await_args.kwargs["tool_choice"] == "none"
 
 
 async def test_chat_quota_exhausted(client):
@@ -92,18 +111,206 @@ async def test_chat_quota_exhausted(client):
         json={"subject": "s", "company": "quota", "max_queries": 2},
     )
     token = r.json()["token"]
-    auth = {"Authorization": f"Bearer {token}"}
 
-    assert (await client.post("/chat", headers=auth, json={"message": "1"})).status_code == 200
-    assert (await client.post("/chat", headers=auth, json={"message": "2"})).status_code == 200
-    third = await client.post("/chat", headers=auth, json={"message": "3"})
-    assert third.status_code == 429
+    assert (await ask(client, token, message="1")).status_code == 200
+    assert (await ask(client, token, message="2")).status_code == 200
+    assert (await ask(client, token, message="3")).status_code == 429
 
 
 async def test_chat_bad_token(client):
     resp = await client.post(
-        "/chat",
-        headers={"Authorization": "Bearer not-a-real-jwt"},
+        "/chat/stream",
+        headers={"Authorization": "Bearer not-a-real-jwt", **key_header()},
         json={"message": "hi"},
     )
     assert resp.status_code == 401
+
+async def test_system_prompt_carries_todays_date(client, issued_token, openai_mock):
+    """
+    Without this the model reasons from its training cutoff — it told a hirer
+    "today is in early 2025" and miscalculated tenure at iEDI.
+    """
+    from datetime import datetime, timezone
+
+    await ask(client, issued_token, message="how long has he been at iEDI?")
+
+    sent = openai_mock.chat.completions.create.call_args.kwargs["messages"]
+    system = next(m for m in sent if m["role"] == "system")
+    assert str(datetime.now(timezone.utc).year) in system["content"]
+    assert "Today's date is" in system["content"]
+
+
+async def test_injected_date_is_not_returned_to_the_client(client, issued_token):
+    """The system message is backend-only, date included."""
+    resp = await ask(client, issued_token)
+    assert all(m["role"] != "system" for m in done_frame(resp)["history"])
+    assert "Today's date is" not in resp.text
+
+
+async def test_injected_system_text_is_gender_neutral(client, issued_token, openai_mock):
+    """
+    Who the CV describes, and how they refer to themselves, belongs in the
+    resource records. Code that wraps the system prompt must not assert it.
+    """
+    import re
+
+    await ask(client, issued_token)
+
+    sent = openai_mock.chat.completions.create.call_args.kwargs["messages"]
+    system = next(m for m in sent if m["role"] == "system")
+    # Only the portion this codebase appends; the prompt file itself is the
+    # author's own content and out of scope here.
+    from app.common.config import get_settings
+
+    appended = system["content"].replace(get_settings().system_prompt, "")
+
+    gendered = re.findall(r"\b(he|him|his|she|her|hers|himself|herself)\b", appended, re.I)
+    assert not gendered, f"gendered pronouns hardcoded in appended system text: {gendered}"
+
+
+# --- a question, named by its key ----------------------------------------
+
+
+async def test_chat_refuses_a_question_with_no_key_without_spending(client, issued_token):
+    resp = await client.post(
+        "/chat/stream",
+        headers={"Authorization": f"Bearer {issued_token}"},
+        json={"message": "hi"},
+    )
+    assert resp.status_code == 422
+
+    assert done_frame(await ask(client, issued_token))["usage"]["used"] == 1
+
+
+async def test_chat_refuses_a_malformed_key_without_spending(client, issued_token):
+    malformed = "not-a-uuid"
+    resp = await ask(client, issued_token, question_key=malformed)
+    assert resp.status_code == 422
+
+    assert done_frame(await ask(client, issued_token))["usage"]["used"] == 1
+
+
+async def test_a_retry_runs_the_model_again_and_spends_nothing(client, issued_token, openai_mock):
+    key = str(uuid.uuid4())
+
+    first = await ask(client, issued_token, question_key=key)
+    calls = openai_mock.chat.completions.create.await_count
+    second = await ask(client, issued_token, question_key=key)
+
+    assert done_frame(first)["usage"]["used"] == 1
+    assert done_frame(second)["usage"]["used"] == 1
+    assert openai_mock.chat.completions.create.await_count > calls
+
+
+async def test_a_retry_with_a_different_question_is_refused(client, issued_token, openai_mock):
+    """The hash is the server's own, so no client can vouch for a new question."""
+    key = str(uuid.uuid4())
+    await ask(client, issued_token, question_key=key, message="the one paid for")
+    calls = openai_mock.chat.completions.create.await_count
+
+    resp = await ask(client, issued_token, question_key=key, message="a free one")
+
+    assert resp.status_code == 422
+    assert openai_mock.chat.completions.create.await_count == calls
+
+
+async def test_a_question_past_its_attempts_is_refused(client, issued_token):
+    key = str(uuid.uuid4())
+    for _ in range(MAX_QUESTION_ATTEMPTS):
+        assert (await ask(client, issued_token, question_key=key)).status_code == 200
+
+    resp = await ask(client, issued_token, question_key=key)
+
+    assert resp.status_code == 409
+    assert done_frame(await ask(client, issued_token))["usage"]["used"] == 2
+
+
+async def test_the_last_question_can_be_retried(client):
+    r = await client.post(
+        "/admin/issue-token",
+        headers={"X-Admin-Key": os.environ["ADMIN_KEY"]},
+        json={"subject": "s", "company": "quota", "max_queries": 1},
+    )
+    token = r.json()["token"]
+    key = str(uuid.uuid4())
+    assert (await ask(client, token, question_key=key)).status_code == 200
+
+    assert (await ask(client, token, question_key=key)).status_code == 200
+    assert (await ask(client, token)).status_code == 429
+
+
+async def test_the_key_is_allowed_across_origins(client):
+    """The chat calls the API from another origin, so a browser asks first."""
+    origin = get_settings().cors_origins[0]
+
+    resp = await client.options(
+        "/chat/stream",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type,x-idempotency-key",
+        },
+    )
+
+    assert resp.status_code == 200
+    assert "x-idempotency-key" in resp.headers["access-control-allow-headers"].lower()
+    assert resp.headers["access-control-allow-origin"] == origin
+
+
+# --- progress, before the first word -------------------------------------
+
+
+def _progress(resp):
+    return [f for f in sse_frames(resp) if f["type"] in ("state", "thought")]
+
+
+async def test_a_plain_reply_says_it_is_reading_then_composing(client, issued_token):
+    resp = await ask(client, issued_token)
+
+    frames = sse_frames(resp)
+    assert frames[:2] == [
+        {"type": "state", "code": "preprocessing"},
+        {"type": "state", "code": "composing"},
+    ]
+    assert frames[-1]["type"] == "done"
+
+
+async def test_a_search_is_announced_without_saying_what_for(client, issued_token, openai_mock):
+    from unittest.mock import AsyncMock, MagicMock
+
+    def _wants_search():
+        async def _chunks():
+            call = MagicMock(index=0, id="call_1", type="function")
+            call.function = MagicMock(arguments='{"query": "a-secret-search-term"}')
+            call.function.name = "search_cv"
+            yield MagicMock(choices=[MagicMock(delta=MagicMock(content=None, tool_calls=[call]), finish_reason=None)])
+            yield MagicMock(
+                choices=[MagicMock(delta=MagicMock(content=None, tool_calls=None), finish_reason="tool_calls")]
+            )
+
+        return _chunks()
+
+    openai_mock.chat.completions.create = AsyncMock(side_effect=[_wants_search(), stream_of("found it")])
+
+    resp = await ask(client, issued_token)
+
+    assert _progress(resp) == [
+        {"type": "state", "code": "preprocessing"},
+        {"type": "state", "code": "composing"},
+        {"type": "thought", "code": "knowledge_lookup"},
+        {"type": "state", "code": "composing"},
+    ]
+    progress_text = str(_progress(resp))
+    assert "search_cv" not in progress_text
+    assert "a-secret-search-term" not in progress_text
+
+
+async def test_a_refusal_is_a_status_and_no_progress_is_streamed(client):
+    resp = await client.post(
+        "/chat/stream",
+        headers={"Authorization": "Bearer not-a-real-jwt", **key_header()},
+        json={"message": "hi"},
+    )
+
+    assert resp.status_code == 401
+    assert "preprocessing" not in resp.text

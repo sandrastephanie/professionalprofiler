@@ -12,6 +12,7 @@ services:
     restart: unless-stopped
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN:?SITE_DOMAIN must be set}
+      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN must be set}
       ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL must be set}
     ports:
       - "80:80"
@@ -19,6 +20,10 @@ services:
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Other sites this host serves, one `.caddy` file each, imported at the
+      # end of the Caddyfile. Empty unless another project puts one there —
+      # see "Other sites on this host" in docs/deployment.md.
+      - ${CADDY_SITES_DIR:-./caddy/sites}:/etc/caddy/sites:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -61,8 +66,19 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
+    environment:
+      # A fact of this topology, so here rather than in .env: the backend is
+      # only `expose`d, so every request reaches it through Caddy, which writes
+      # X-Forwarded-For itself. That makes the header the visitor's address —
+      # what guest trials are counted by (app/common/client_ip.py). Never set
+      # this where the backend's port is reachable directly.
+      TRUST_PROXY_HEADERS: "true"
     volumes:
-      - ./backend/resources:/app/resources
+      # Read-only: the container scans this at startup and never writes to it.
+      # Nothing in the image builds an index or rewrites skills.md any more, so
+      # the mount enforces what was previously only a convention — and the
+      # chown step the old index build needed goes with it.
+      - ./backend/resources:/app/resources:ro
     expose:
       - "8000"
     healthcheck:
@@ -85,8 +101,26 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: /api
+        # The API's own host. Inlined into the browser bundle by next build,
+        # so a change here is a rebuild. The browser then calls it cross-origin
+        # — CORS, with ALLOWED_HOSTS listing SITE_DOMAIN's origin — and the
+        # refresh cookie is the API host's, sent because the two are same-site.
+        NEXT_PUBLIC_API_URL: https://${API_DOMAIN:?API_DOMAIN must be set}
     restart: unless-stopped
+    environment:
+      # Whose CV this is. Read on the server per request, so changing one of
+      # these is a restart rather than a rebuild — unlike NEXT_PUBLIC_API_URL
+      # above, which next build inlines into the browser bundle.
+      #
+      # `${VAR-default}`, not `${VAR:-default}`: the colon form also substitutes
+      # when the variable is set but empty, which would make "I have no LinkedIn"
+      # render the author's.
+      OWNER_NAME: ${OWNER_NAME-Sandra}
+      OWNER_GITHUB_URL: ${OWNER_GITHUB_URL-https://github.com/sandrastephanie}
+      OWNER_LINKEDIN_URL: ${OWNER_LINKEDIN_URL-https://www.linkedin.com/in/sandra-stephanie-raveendran/}
+      OWNER_WEBSITE_URL: ${OWNER_WEBSITE_URL-}
+      # The site's own address, for the link preview's image (layout.tsx).
+      SITE_URL: https://${SITE_DOMAIN:?SITE_DOMAIN must be set}
     expose:
       - "3000"
     depends_on:

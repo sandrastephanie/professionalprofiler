@@ -12,7 +12,7 @@ cp backend/.env.example backend/.env
 ln -s backend/.env .env
 
 # Add your OPENAI_API_KEY to backend/.env, then provide the system prompt --
-# app/common/config.py reads it at import and raises if missing or empty.
+# Settings reads it when the application starts and raises if missing or empty.
 cp backend/resources/system-prompt.md.example backend/resources/system-prompt.md
 
 docker compose up -d
@@ -21,14 +21,74 @@ docker compose up -d
 The dev stack exposes the backend on `:8000` and the frontend on `:3000`
 directly; Caddy is production-only.
 
-`/chat` and `/chat/stream` additionally needs the search index, which is generated from the
-markdown in `backend/resources/`:
+The CV index is built from the markdown in `backend/resources/` when the backend
+starts — there is no build step and no artifact. The dev stack watches that
+directory, so editing a record reloads the app and rebuilds the index with no
+command to run. A resources directory that yields no records stops the server
+rather than leaving it answering nothing.
 
-```bash
-docker compose run --rm backend python -m app.build_index
+`skills.md` is the one file still generated, and it is tracked: regenerate it
+locally with `python -m app.build_skills` (from `backend/`) after editing the
+tags on any record, and commit the result.
+
+### The GitHub activity record
+
+`backend/resources/github-activity.md` is written by a workflow, not by hand:
+`.github/workflows/github-activity.yml` runs `scripts/github-activity.py` every
+Monday and commits the result to `main`. It counts Sandra's pushes over the
+last 30 days. Public repositories are named; private ones are only counted, and
+no repository is described, because this file is public.
+
+Private pushes need a token that can see them, stored as the Actions secret
+`ACTIVITY_TOKEN`. Without it the record counts public pushes and says the
+private ones were not counted. This is the one place a workflow pushes to
+`main` directly: the file is generated, and a weekly pull request for a count
+would be ceremony. That push does not start CI or a deploy, so the chat shows
+the new numbers after the next deploy.
+
+## Branches
+
+Three tiers, and code moves one way through them:
+
+```
+feat|fix|chore/*  ──PR──>  development  ──PR──>  main
+    CI (fast)                CI (full)          CI (full) + deploy
 ```
 
-Re-run that whenever you add or edit a file there.
+| Branch | Purpose | What runs |
+|---|---|---|
+| `main` | Production. Its HEAD is what is on the server. | Full CI, then a deploy that waits for approval, then a release tag if the version bumped |
+| `development` | Integration. Everything lands here first and is judged here. | Full CI |
+| `feat/*`, `fix/*`, `chore/*` | Anything in progress — a feature, a fix, a release or a spike. | Backend, frontend and the secret scan on each push |
+
+**This fork skips the middle tier.** Michael's original fails any PR into
+`main` whose head is not `development`, with a `Branch policy` job in CI. That
+job is removed here: one person works on this copy, there is no `development`
+branch, and a work branch goes into `main` by pull request directly. The PR
+still runs the full CI.
+
+### Why work branches get less
+
+Pushes to any branch other than `development` and `main` skip the migration, Caddy and image-build jobs. They
+are the slow ones and they rarely catch anything mid-spike; skipping them keeps
+a push under a minute. Nothing is lost, because they run again on the PR into
+`development` — the branch is short-lived, the gate is at the merge, and the
+promotion PR into `main` runs them a second time.
+
+The secret scan is never skipped. A key pushed to a public repo is compromised
+the moment it lands, whatever branch it landed on.
+
+### Promoting to production
+
+```bash
+git switch development && git pull
+# ... merge your work-branch PRs here, let CI go green ...
+gh pr create --base main --head development --title "Release: <what changed>"
+```
+
+Bump the version in `backend/pyproject.toml` on `development` before the
+promotion PR if this release should be tagged — the release job reads it and
+does nothing when it has not changed. See [deployment](deployment.md).
 
 ## Tests
 
@@ -39,6 +99,35 @@ Run them on the host:
 ```bash
 cd backend && uv sync && uv run pytest
 ```
+
+Type checking runs the same way, and is not part of the test run, so running it
+locally is a deliberate act. CI runs it on every push regardless:
+
+```bash
+cd backend && uv run mypy
+```
+
+The frontend is checked by `npx tsc --noEmit` and linted by `npx eslint`, both
+from `frontend/`. `next build` runs the type check itself, so a green build
+implies a green `tsc`.
+
+## Evals
+
+`backend/tests/evals/` measures how often the chat denies something the CV
+actually contains, and blames each failure on the retrieval step that let it
+through. It is not part of the test run: it drives a live backend with the real
+model, so every run costs API calls and leaves one conversation per question in
+the database.
+
+```bash
+docker compose exec backend python -m tests.evals.run_eval
+docker compose exec backend python -m tests.evals.run_eval --only 1,6,16   # smoke test
+```
+
+It measures whatever model the running backend was started with, and a dev
+backend starts with the cheap one — set `OPENAI_MODEL` in `backend/.env` and
+restart before comparing. The `run_eval.py` docstring has the rest.
+Transcripts go to `tests/evals/results/`, which is gitignored.
 
 ## API docs
 

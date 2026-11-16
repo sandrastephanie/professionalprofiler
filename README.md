@@ -13,12 +13,13 @@ The project consists of a Python backend exposing REST APIs and AI integrations,
 * PostgreSQL database
 * SQLAlchemy Async ORM
 * Alembic database migrations
-* JWT-based authentication
+* JWT authentication in two flows — a long-lived link, and a single-use claim
+  exchanged for a rotating refresh token and short-lived access token
+* Per-grant query quota, enforced by an atomic UPDATE rather than in memory
 * OpenAI integration
 * Dockerized development environment
 * TypeScript frontend
-* Tailwind CSS UI
-* TanStack Query for API communication
+* Plain CSS, no framework
 
 ---
 
@@ -34,15 +35,14 @@ The project consists of a Python backend exposing REST APIs and AI integrations,
 * psycopg 3 (binary) — the driver, via `postgresql+psycopg://`
 * OpenAI SDK
 * uv package manager
+* mypy (typed, checked — see `backend/README.md`)
 
 ## Frontend
 
 * Next.js 16
 * React 19
 * TypeScript
-* Tailwind CSS 4
-* TanStack Query
-* shadcn/ui
+* Plain CSS
 * React Markdown
 * JWT Decode
 
@@ -72,20 +72,35 @@ The project consists of a Python backend exposing REST APIs and AI integrations,
 │   └── Dockerfile            # Caddy + rate-limit module, built via xcaddy
 ├── Caddyfile                 # prod only; site address comes from $SITE_DOMAIN
 ├── docker-compose.yaml       # dev
+├── docker-compose.embed.yaml # dev overlay: CORS for the website's dev:stack
+├── docker-compose.lan.yaml   # dev overlay: a phone on the same Wi-Fi
 ├── docker-compose.prod.yaml  # production (Caddy + services)
 ├── docs
 │   ├── architecture.md
 │   ├── database.md
 │   ├── deployment.md
-│   └── development.md
+│   ├── design.md
+│   ├── development.md
+│   └── privacy.md
+├── scripts                   # run from cron on the production host
+│   ├── backup-db.sh
+│   ├── backup-private-resources.sh
+│   ├── dev-lan.sh            # dev only: see "Try it on a phone" below
+│   ├── pull-backups.sh
+│   ├── purge-chat-content.sh
+│   ├── purge-expired-sessions.sh
+│   ├── purge-question-keys.sh
+│   ├── purge-trial-requests.sh
+│   └── setup-deploy-secrets.sh   # CI deploy key + GitHub secrets; also key rotation
 ├── frontend
-│   ├── components.json
 │   ├── Dockerfile
+│   ├── e2e                   # Playwright, backend mocked
+│   ├── embed                 # the <workchat-chat> element; see EMBED.md
+│   ├── EMBED.md
 │   ├── eslint.config.mjs
 │   ├── next.config.ts
 │   ├── package.json
 │   ├── package-lock.json
-│   ├── postcss.config.mjs
 │   ├── public
 │   ├── README.md
 │   ├── src
@@ -138,8 +153,8 @@ For local Python development outside Docker:
 Clone the repository:
 
 ```bash
-git clone https://github.com/sandrastephanie/professionalprofiler.git
-cd professionalprofiler
+git clone https://github.com/buzzgreyday/workchat.git
+cd workchat
 ```
 
 Create the environment file. Both compose files read `backend/.env` **and**
@@ -200,7 +215,7 @@ docker compose down
 # Build new skills
 
 ```bash
-cd backend && uv run --env-file .env -m app.build_index
+cd backend && uv run --env-file .env -m app.build_skills
 ```
 
 ---
@@ -215,7 +230,7 @@ consumers:
 
 | Consumer | How it reads the file |
 | --- | --- |
-| Backend outside Docker (local dev) | `load_dotenv(BACKEND_DIR / ".env")` in `app/common/config.py` |
+| Backend outside Docker (local dev) | `load_dotenv(BACKEND_DIR / ".env")` in `Settings.from_env()` |
 | The `backend` and `db` containers | `env_file: ./backend/.env` in both compose files |
 | Compose itself, for `${POSTGRES_USER}` etc. in `docker-compose.prod.yaml` | only ever reads a `.env` sitting next to the compose file |
 
@@ -287,6 +302,24 @@ Open a shell:
 ```bash
 docker compose exec frontend sh
 ```
+
+Try it on a phone on the same Wi-Fi:
+
+```bash
+scripts/dev-lan.sh          # prints a claim link and a QR code to scan
+scripts/dev-lan.sh --off    # back to localhost only
+```
+
+It recreates the backend and frontend with `docker-compose.lan.yaml`, which
+points the browser at this machine's LAN address instead of `localhost` and
+adds that origin to the backend's CORS list. `localhost:3000` keeps working
+alongside it. Each run mints a fresh claim link; claims work once, so run it
+again for a new one.
+
+Edits hot-reload on the phone as they do on this machine, while the overlay is
+on. Each run, `--off` included, recreates the frontend with a different API
+address, so reload any page left open from before. One opened before `--off`
+keeps showing its last state and stops updating.
 
 ---
 
@@ -388,6 +421,111 @@ OpenAPI Specification:
 http://localhost:8000/openapi.json
 ```
 
+## Token flow
+
+Two token versions are live at once. Which one a request is using is decided by
+the `ver` claim on the JWT, and its **absence** means version 1 — the tokens
+already handed out cannot grow a claim they were never minted with, so silence
+has to keep meaning v1 for as long as any of those links is still in an inbox.
+
+Only the auth endpoints are versioned. `/chat/stream` stays where it
+is and accepts either kind of access token, because moving them under `/v2` would
+have left every v1 hirer holding a link to a frozen API.
+
+**v1 — the links already sent out.** One long-lived JWT per grant, delivered as
+`?token=...` and sent straight back as `Authorization: Bearer`. Its `jti` *is*
+the `tokens` row. Nothing about this path has changed.
+
+```
+/admin/issue-token (version=1)  ->  ?token=<access JWT>  ->  POST /chat/stream
+```
+
+**v2 — claim, then refresh.** The link carries a single-use claim token, which
+the client exchanges for a short-lived access token and a rotating refresh token.
+
+```
+/admin/issue-token (version=2)  ->  ?claim=<claim JWT>
+        |
+        v
+POST /v2/auth/claim    {claim_token}  -> {access_token, expires_in, ...}
+                                         + Set-Cookie: cv_refresh=... (HttpOnly)
+POST /v2/auth/refresh  (cookie)       -> a fresh pair; the one presented is retired
+POST /chat/stream      Bearer <access_token>
+```
+
+Properties worth knowing:
+
+* **The refresh token is only ever a cookie.** HttpOnly, Secure outside dev,
+  SameSite=Strict, and never in a response body — so script on the page cannot
+  read it. The access token *is* in the body, because the client has to put it in
+  an `Authorization` header, which is why it is short-lived. An XSS gets minutes
+  of access, not a week of it. In production Caddy serves the frontend and proxies
+  the API under `/api` on one origin, so this is a plain same-origin cookie.
+* **The claim link is single use.** The first exchange spends it; every later one
+  is refused with 409 and logs a notice that this hirer needs a new link. A leaked
+  URL — in a browser history, a mail thread, a photographed QR code — is therefore
+  worth nothing once the hirer has opened it. The cost is that clearing site data
+  or moving device needs a new link.
+* **Quota is per grant, not per token.** Claiming and refreshing cost nothing;
+  only a question spends a query.
+* **A question is paid for once.** `POST /chat/stream` requires an
+  `X-Idempotency-Key`, a UUID the client makes for each question. Sending it again
+  retries without spending: the model runs again, up to three times in all, and
+  only for the same question, which the server checks against its own hash. Any
+  other message under that key is a 422, and a fourth attempt a 409. Without this
+  a dropped connection cost a question and gave nothing back.
+* **Nothing derived outlives its grant.** Access and refresh expiries are both
+  clamped to `tokens.expires_at`.
+* **Rotation has a grace window.** A refresh token re-presented within
+  `REFRESH_ROTATION_GRACE_SECONDS` of being rotated answers 409 and changes
+  nothing — that is one client racing itself, which happens whenever several
+  requests expire at once and each retries. Without the window those retries read
+  as replays and cut the grant, logging the hirer out of the tab they were sitting
+  in. The frontend also single-flights refreshes so it rarely comes up.
+* **Past the window, a replay cuts the grant.** Rotation retires the token it was
+  given, so a late second use is either theft or a badly behaved client and
+  nothing can tell which. Every session is revoked; with a single-use claim there
+  is no self-serve way back, so a notice is logged for the operator.
+* **An access token dies with its session**, rotation included. The call that
+  rotates hands back a fresh one, so a client only ever carries the newest pair.
+
+## Reading the allowance
+
+`GET /session` reports who a token belongs to and what is left of its quota,
+without spending any of it. Unversioned, like the chat routes: a v1 `?token=`
+JWT and a v2 access token are both valid ways to be here and get the same
+answer.
+
+```
+GET /session   Authorization: Bearer <access token>
+-> {"subject": "...", "version": 2, "expires_at": "...",
+    "usage": {"used": 0, "remaining": 5, "max": 5}, "session_id": "..."}
+```
+
+It exists because usage used to arrive only inside a chat response, so the one
+number a hirer wants on arrival — how many questions they get — was the one thing
+they had to spend a question to learn. An exhausted grant returns
+`remaining: 0` with a 200 rather than a 429: that is a state to display, and the
+person with none left is exactly who needs telling. `/chat/stream` still answers 429
+when one is actually attempted.
+
+Revoking is `POST /admin/tokens/{token_id}/revoke` (admin key required). It stamps
+`tokens.revoked_at` *and* cuts every session, which matters because the grant — not
+the session — is what a claim link reaches: cutting sessions alone would leave
+anyone holding the link able to open a new one. It works on v1 grants too, and is
+idempotent.
+
+| Variable | Default | What it sets |
+| --- | --- | --- |
+| `ACCESS_TOKEN_TTL_SECONDS` | `900` (15 min) | v2 access token lifetime |
+| `REFRESH_TOKEN_TTL_SECONDS` | `604800` (7 days) | v2 refresh token lifetime |
+| `REFRESH_ROTATION_GRACE_SECONDS` | `30` | How long a rotated token still reads as a retry |
+| `OWNER_NOTIFY_THROTTLE_SECONDS` | `3600` | Minimum gap between operator notices per grant |
+| `REFRESH_COOKIE_NAME` | `cv_refresh` | Name of the refresh cookie |
+
+Operator notices go through `app/services/notify.py`, which logs today. Wiring it
+to an inbox is a change to that one file.
+
 ---
 
 # Docker Commands
@@ -456,14 +594,17 @@ Typical development workflow:
       --autogenerate -m "…"`.
    2. Review it. Autogenerate misses things like server defaults and renames.
    3. Apply it — `docker compose exec backend alembic upgrade head`.
-3. If you edited anything in `backend/resources/`, rebuild the search index, or
-   `/chat` will keep answering from the old one:
-   `docker compose run --rm backend python -m app.build_index`
+3. If you edited the tags on anything in `backend/resources/`, regenerate the
+   skills list — `cd backend && uv run -m app.build_skills` — and commit it.
+   The search index needs nothing: it is rebuilt when the backend reloads.
 4. Run the tests on the host — `cd backend && uv run pytest` (see [Testing](#testing)).
 5. Rebuild only when dependencies change — `docker compose build backend`
    after `pyproject.toml`/`uv.lock`, or `frontend` after `package.json`.
 6. Commit code and migration files together, so a checkout never has models and
    schema out of step.
+7. Work on a `feat/*`, `fix/*` or `chore/*` branch and open a pull request into
+   `development`. `main` is production and takes merges from `development`
+   only — see [Branches](docs/development.md#branches).
 
 ---
 
@@ -565,19 +706,30 @@ access tokens, logs and backups.
 
 Possible future enhancements include:
 
-* Keep chat history in database (server-side)
-* First request either takes history or the system-prompt (system-prompt should be added server-side only). Also, server-side history in Postgres only.
-* Handle max_queries, invalid token, etc. in frontend
+* AuthHandler — done: the `app/services/auth/` package (`TokenCodec`, `SessionService`, `Authenticator`)
+* ~~Refresh token (via claim/invite id/token)~~ — done, see [Token flow](#token-flow)
 * Token persistence
-* CI/CD pipeline
-* Automated testing
-* Redis caching
+* ~~Handle max queries reached, invalid/expired token, etc. in frontend~~ — done;
+  the allowance is shown from `GET /session` on load, and a refused question says
+  which kind of refusal it was
+
+* ChatClient
+* Abstractions
+
+* Move the hardcoded conditional prompts from the code to separate files
+* Resource search scoring
+* ~~CI/CD pipeline~~ — done: GitHub Actions runs types, tests, migration drift,
+  Caddyfile, secret scanning and image builds. Work happens on `feat/*`, `fix/*`
+  and `chore/*`, integrates on `development` and reaches production through `main`, where a
+  green run queues a deploy for approval. See
+  [branches](docs/development.md#branches) and
+  [`docs/deployment.md`](docs/deployment.md#cicd)
+* ~~Automated testing~~ — done: the backend suite, run in CI
 * Background workers
-* Rate limiting
 * Monitoring and metrics
 * Centralized logging
 * Backup automation
-* Multi-environment configuration
-* API versioning
+* API versioning — partly done: the auth endpoints are under `/v2`, the chat ones
+  are deliberately unversioned so existing links keep working
 * Chat client polymorph and factory (YAGNI)
 

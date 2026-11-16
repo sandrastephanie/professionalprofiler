@@ -7,6 +7,1088 @@ covering both frontend and backend together. `backend/pyproject.toml` and
 `frontend/package.json` version fields are bumped to match on release, not
 tracked independently._
 
+## [0.16.1] - 2026-11-08
+
+### Fixed
+
+- **Try again works the moment it shows.** It appeared on the error frame,
+  before the stream had closed, while a second turn is still refused, so a
+  quick tap on it did nothing. It now shows once the failed turn is over.
+- **Try again is clear of the box to type in.** It came after the room held
+  under the newest question, half under the box, and a tap on its lower half
+  went to the box. The room leaves space for it.
+- **A short reply's bubble is its own height.** The room under a question is
+  a minimum height on the reply's row, and since 0.15.0 it stretched the
+  bubble in it to an empty box the height of the screen. The rows are
+  top-aligned. mringdal.com draws replies without a bubble, so it never
+  showed there.
+
+## [0.16.0] - 2026-11-08
+
+### Changed
+
+- **The conversation runs on behind the box to type in.** The box is held at
+  the foot of what scrolls, and the conversation passes behind it to the
+  bottom of the chat, fading out under it, where it used to stop at a hard
+  line above the box. At the end, the last message stops just above it. The
+  colour it fades into is `--chat-fade`.
+- **Send is an arrow up, inside the box** at its end, centred in a one-line
+  field and held in the corner as a question grows. It pairs with the arrow
+  down to the latest, and both are 18px at a stroke of 2.5. The paper plane
+  was the most familiar send there is, and the least of a set with anything.
+- The button to the latest sits with the box, just above it.
+
+### Added
+
+- `--chat-fade`, what the conversation fades into under the box. Defaults to
+  `--chat-panel`.
+
+## [0.15.0] - 2026-11-07
+
+### Changed
+
+- **The view holds still while a reply arrives.** Asking a question scrolls
+  once — the question to the top, with room under it — and then nothing
+  moves while the reply streams in. It used to follow the reply down a line
+  at a time while the reader was at the bottom, and the paragraph being read
+  moved out from under the reader once per token. Once a reply runs past the
+  foot of the transcript, a round button there, "Go to the latest", goes to
+  the end.
+- Almost all of it is CSS. A browser does not move the view when content
+  grows below it, so holding still needs nothing; the room under a question
+  is a minimum height on the newest reply, in the transcript's container
+  units; and the button shows and hides itself from the scroll position, a
+  scroll-driven animation. Script only scrolls to a new question and answers
+  the button. A first version measured all of it in script, on every token,
+  and the CSS replaced it. Firefox has no scroll-driven animations yet: there
+  the button stays hidden, and the transcript scrolls by hand.
+
+### Added
+
+- `scrollbar="none"` hides the transcript's scrollbar in every browser. The
+  WebKit builds and app web views — the DuckDuckGo browser — did not honour a
+  host's `scrollbar-width: none` on the transcript part, and only the element
+  can name its own `::-webkit-scrollbar`.
+- A part, `jump`: the button to the end, for a host to style.
+
+## [0.14.0] - 2026-11-07
+
+### Added
+
+- **The element says when it is at work.** `<workchat-chat>` is in a custom
+  state, `working`, whenever its typing dots show: while it opens its session,
+  and from the moment a question is sent until its reply has finished or
+  broken off. A host selects it in CSS — `workchat-chat:state(working)` — and
+  mringdal.com rings its message box in violet and magenta while it is set. A
+  state rather than an event, because what a host does with "the chat is at
+  work" is a look: CSS can select it without a line of script, and it is there
+  whenever the stylesheet is, with nothing to miss by listening too late. A
+  browser without custom states shows none, and the chat works as before.
+- **Parts, for what a colour cannot do.** The box the question is typed in
+  (`composer`), the conversation (`transcript`), every message (`bubble`, and
+  `user-bubble` or `bot-bubble`) and the send button (`send`) are shadow
+  parts. A host styles them with `::part()`: mringdal.com draws a ring of two
+  drifting colours round the box, sets replies as plain text with the
+  questions raised, takes the scrollbar away and makes the send button round.
+  A `--chat-*` variable carries one value, so the ring could only ever have
+  had one colour. Only the parts a host has asked for, because each one is a
+  promise about the markup under it.
+- `--chat-scrollbar`, the colour of the transcript's scrollbar.
+
+### Changed
+
+- **The scrollbar is a thin thumb on nothing** — no track, no arrows. Firefox
+  draws that from the standard properties; Chrome draws arrows even on a thin
+  bar, and drops them only through its own `::-webkit-scrollbar`, which it
+  ignores wherever the standard properties are set, so it gets those instead.
+- **Muted text is sage** (`#809e85`), a grey tinted green, where it was a
+  neutral grey. The grey was 3.95:1 on the navy; sage, at the same lightness,
+  is 4.7:1. A dark green was tried first, and at 1.8:1 could not be read.
+
+### Fixed
+
+- A reply's paragraphs, lists and code have a gap between them. The reset
+  took every margin away, and a two-paragraph answer ran together as one.
+
+## [0.13.7] - 2026-11-07
+
+### Fixed
+
+- A grant's `created_at` is stored in UTC whatever timezone the host runs in.
+  It was built from a naive local time, which the domain model then read as
+  UTC — right on a UTC host, off by the host's offset anywhere else.
+
+### Changed
+
+- Nothing a visitor or a hirer sees: the same responses, the same tokens, the
+  same status codes. The backend was tidied against Clean Code.
+- **Auth is a package, one class per reason to change.** `TokenCodec` holds
+  the signing key, `SessionService` runs the v2 claim and refresh flow, and
+  `Authenticator` checks a request's bearer. The admin key is a plain
+  dependency, because it shares nothing with the rest. One `Auth` class did
+  all of it and changed for every one of those reasons. The v1 path is
+  untouched.
+- **Configuration is handed down, not fetched.** The chat turn is given its
+  model and system prompt, and the token and session stores their time
+  windows, instead of each reading `get_settings()` itself. A test now changes
+  them by overriding one dependency rather than patching a module.
+- **Rules stated once.** What makes a grant unusable lives on `Grant`, and a
+  model call is streamed by one piece of code; each had been written twice.
+- Token versions are a `TokenVersion` enum and a message's role and status are
+  typed, where they were bare numbers and strings documented in comments. The
+  wire format and the stored values are the same numbers and words as before.
+
+## [0.13.6] - 2026-11-06
+
+### Fixed
+
+- The chat no longer tells hirers its frontend uses shadcn/ui and TanStack
+  Query. Both were removed, unused, in 0.7.0, but the record it answers from
+  still named them.
+
+### Changed
+
+- Nothing else a visitor sees. An unused animation token is gone, four nested
+  choices in the frontend read as plain if/else, the session refresh is one
+  try, and comments and docs say what the code does now. `docs/design.md` gives
+  the title's weight per surface: 800 on chat.mringdal.com, 600 in the embed.
+
+## [0.13.5] - 2026-11-06
+
+### Changed
+
+- **The chat can explain how it is built.** Asked about its engineering, it
+  can describe idempotent retries, the atomic spend, signed history, the
+  private proof-of-work trial, the layering of a chat turn, the embed's
+  contract and the eval suite, each checked against the code it describes.
+- **The chat knows mringdal.com**, the site it is embedded in, and the
+  decisions behind it: two repos joined only by a written contract, plain CSS,
+  same-site cookies and gated deploys.
+
+### Fixed
+
+- The chat no longer says its frontend is built with Tailwind. It has been
+  plain CSS since 0.12.0, and the record now says so and mentions the guest
+  trial. CLAUDE.md now asks for the record to change with the code it
+  describes.
+
+## [0.13.4] - 2026-11-01
+
+### Changed
+
+- The button glow is tighter, so it stays a little warmth under the button rather
+  than a halo on a dark page. A press looks shallower: its inset shadow is
+  smaller and lighter, and the button still moves down a pixel.
+
+## [0.13.3] - 2026-11-01
+
+### Changed
+
+- Every button is one rule, in its own colour: a gradient to a slightly darker
+  foot, a line of light along the top, a dark edge along the bottom, a tight
+  shadow and a soft glow. The darker shades keep the colour's saturation and
+  hue, so its darkest edge is never grey. Pressed, a button goes flat, moves down
+  a pixel and takes a dark inset shadow. Reduced motion keeps it still.
+
+## [0.13.2] - 2026-11-01
+
+### Fixed
+
+- The chat's buttons are semi-bold. They asked for weight 500, which the website
+  does not load, so a browser drew them at 400: too thin on the send colour, and
+  lighter than the site's own buttons.
+
+## [0.13.1] - 2026-11-01
+
+### Changed
+
+- Buttons are flat colour, lit by a 1px line along the top and shaded by a 2px
+  line along the bottom, in place of the gradient foot. The edges stay the same
+  thickness on a button of any size, so a large one no longer looks heavier.
+
+## [0.13.0] - 2026-11-01
+
+### Changed
+
+- **The wait for a reply says what is happening**, in place of three dots:
+  "Sending…", "Reading your question…", "Thinking…" and "Searching the CV…",
+  until the first word replaces the line. The stream reports each step as a code
+  and the frontend words it, so what the model searched for never reaches the
+  browser. The dots stay for a session opening, where nothing has been sent.
+
+## [0.12.0] - 2026-11-01
+
+### Added
+
+- **A question that never arrived can be retried for free.** A failed reply
+  offers "Try again", which reruns the question without spending another, even
+  at zero questions left. A dropped connection used to cost the question and
+  give nothing back. `POST /chat/stream` now requires an `X-Idempotency-Key`,
+  and the server hashes the message itself, so a key buys one question and never
+  a new one; it runs at most three times. Keys and hashes go after a day, by
+  `scripts/purge-question-keys.sh`, which needs a line in the host's crontab
+  (`docs/deployment.md`). A tab left open on the old bundle is refused until it
+  reloads: the chat has few enough visitors to accept that.
+
+### Changed
+
+- **No avatars.** The bubbles' sides say who is speaking, so the bubbles take up
+  to 90% of the width. `--chat-avatar-*` leave the embed's contract, and a host
+  still setting them is ignored.
+- Bubbles round at 14px on every corner, like the controls.
+- The text is easier to read: on chat.mringdal.com messages are 18px at weight
+  400, where 300 was too thin on the navy, and small labels are 14px.
+- Every button is the same three faint layers: a slightly darker foot, its
+  colour, and a crescent of light. Hover barely brightens and nothing moves.
+- The chat's styling is plain CSS, with no Tailwind behind it.
+- The endless animations hold still under reduced motion.
+
+### Fixed
+
+- Two sends in the same instant ask the question once.
+- A stream that ends with no result counts as a failure, rather than leaving the
+  composer shut until a reload.
+
+## [0.11.2] - 2026-10-11
+
+### Changed
+
+- **The dev default model is gpt-6-luna**, replacing gpt-4.1-nano, which OpenAI
+  shuts down on 23 October 2026. About nano's price; a reasoning model.
+  Production stays on gpt-4.1-mini, which has no shutdown date.
+
+### Added
+
+- **`OPENAI_REASONING_EFFORT`**, one central setting for the reasoning effort
+  sent with every chat call: a level, empty for none sent (what gpt-4.1-mini
+  needs), or unset for the default model's own. A misspelt level stops the
+  backend at start. Over Chat Completions with tools — how every chat call is
+  made — OpenAI's reasoning models accept only `none`, so that is gpt-6-luna's
+  default; thinking harder would need the Responses API.
+- The eval report records the reasoning effort beside the model.
+
+## [0.11.1] - 2026-10-05
+
+### Changed
+
+- The trial greeting invites before it explains: "Want to chat? Try me! Ask
+  me a few questions about Michael's work.", then the note for anyone who was
+  sent a link.
+
+## [0.11.0] - 2026-10-05
+
+### Added
+
+- **A browser that has had a guest trial is remembered for 30 days**
+  (`TRIAL_COOKIE_DAYS`) by a signed, httpOnly cookie holding only the trial's
+  date, so the per-day address limit resetting overnight no longer offers the
+  same browser a new trial every morning. The chat says so instead of offering
+  one. Strictly necessary for the trial, so no consent banner
+  (`docs/privacy.md`).
+
+### Changed
+
+- **chat.mringdal.com looks like mringdal.com**: one navy throughout — the bar
+  and footer included, with no lines between them — and the site's gold and
+  coral. The steel-blue frame is gone, and so is `viewport-fit=cover`, which
+  in DuckDuckGo on Android left a blank row above the bar.
+- The trial's wording: a new button ("Try me! Ask a few questions"), a notice
+  that mentions the trial cookie, and messages that point a guest to the owner
+  by name ("…or ask Michael"). The greeting asks what you'd like to know about
+  them.
+- chat.mringdal.com's footer links to the owner's own site first
+  (`OWNER_WEBSITE_URL`, mringdal.com by default), in the same tab.
+
+## [0.10.1] - 2026-10-04
+
+### Changed
+
+- **The API has a host of its own**, `API_DOMAIN` (api.mringdal.com). The chat
+  frontend is built to call it, with CORS; `SITE_DOMAIN/api` keeps proxying to
+  the same backend. Both get the same rate limits — shared, so one allowance
+  per client whichever address it uses — security headers and masked access
+  log, now Caddyfile snippets. Session cookies belong to the host that set
+  them, so sessions open at the switch need signing in once more.
+
+## [0.10.0] - 2026-10-04
+
+### Added
+
+- **Guest trials.** A visitor with no link can ask a few questions instead of
+  hitting a dead end — earned with an invisible proof-of-work solved in their
+  browser, limited to one per IP address per day, within a daily ceiling for
+  everyone. Off unless `TRIAL_ENABLED`. Addresses are never stored: only a keyed
+  hash under a key that changes daily, deleted when its day ends
+  (`docs/privacy.md`).
+- **Signed history.** The server signs the conversation history it hands back
+  each turn and believes only a history it signed, so a client can no longer
+  send back a padded or rewritten one. A refused history starts a fresh
+  conversation. Optional `HISTORY_SIGNING_SECRET`, derived from `JWT_SECRET`
+  when unset.
+
+### Changed
+
+- **Questions are limited to 150 characters** (`MAX_MESSAGE_CHARS`), down from
+  4000. The composer stops at the limit and shows a counter; replies and the
+  history they build are not limited.
+- Caddy's access log masks visitors' addresses to their network; uvicorn's
+  access log is off.
+
+### Fixed
+
+- A question the server refused as invalid — too long, say — no longer costs a
+  question from the allowance. It used to be spent before the request was
+  validated.
+
+## [0.9.5] - 2026-09-27
+
+### Fixed
+
+- An empty `?claim=` — a link cut short, an address bar autocompleting one —
+  no longer stays in the address bar. It was already treated as no claim
+  (the chat resumes from the cookie, or asks for a link); now it is stripped
+  like a spent one, on chat.mringdal.com and in the embed alike. An embed with
+  no `claim` attribute still leaves its host page's address alone.
+
+## [0.9.4] - 2026-09-27
+
+### Fixed
+
+- chat.mringdal.com's WORKCHAT title no longer outgrows its bar when the
+  browser enlarges text by itself, as DuckDuckGo's Text Size does on iOS. The
+  title keeps its designed size; messages, the badge and the links still
+  follow the reader's text size.
+
+## [0.9.3] - 2026-09-27
+
+### Added
+
+- Other sites on the same host can be served through this stack's Caddy:
+  the Caddyfile imports `/etc/caddy/sites/*.caddy`, mounted from
+  `CADDY_SITES_DIR` (default `./caddy/sites`, empty). Each site brings its own
+  file and reloads Caddy; with none there, nothing changes. See "Other sites
+  on this host" in `docs/deployment.md`.
+
+## [0.9.2] - 2026-09-27
+
+### Added
+
+- The embed takes `frame="page"`: no card, no height cap, the chat's column
+  on whatever band the host gives it — chat.mringdal.com's own layout, for a
+  page that is the chat. Without it, or with any other value, the card stays.
+
+## [0.9.1] - 2026-09-27
+
+### Added
+
+- chat.mringdal.com's title switches between WORKCHAT and CHATWORK now and
+  then: one slowly cross-fades into the other in the same place, so the title
+  never goes dark, then it rests about seven seconds. Screen readers always
+  hear "Workchat", and with reduced motion asked for it stays still.
+- `docs/design.md`: the mringdal look written down for other projects —
+  colour roles with their hex values, the rules that keep them apart,
+  measured contrast, type, shape and spacing — with the recipe for the
+  Next.js website: `next/font`, Tailwind 4 tokens, and the palette handed to
+  `<workchat-chat>`.
+
+### Changed
+
+- chat.mringdal.com: the panel is a touch deeper, and replies, the input and
+  the questions-left pill sit on a raised panel lifted from it with white,
+  where they had been the same colour as the chat behind them. The
+  visitor's own messages reach 4.5:1 as a result.
+
+## [0.9.0] - 2026-09-27
+
+### Added
+
+- The embed takes fonts from the host: it inherits the page's font by
+  default, and `--chat-font`, `--chat-font-weight`, `--chat-font-title`,
+  `--chat-font-title-weight` and `--chat-font-title-size` choose otherwise.
+  The host loads the faces; the element names them.
+- Colours by part: `--chat-title-color`, the user and bot bubbles, links,
+  avatar, typing dots, input (including focus), send button and the
+  questions-left pill each have their own variable, defaulting to the palette
+  colour they used before. Fonts by part too: `--chat-font-message` (with
+  weight and size), `--chat-font-input` and `--chat-font-ui`. The input
+  follows the message size but never goes below 1rem. `src/app/theme.css`
+  lists every setting, with `--site-*` variables for the standalone page's
+  top bar, band and footer.
+- `header="none"` hides the chat's header, for a host that frames it with its
+  own. The allowance still arrives as `workchat-usage`.
+- `scripts/dev-lan.sh` opens the local dev stack to a phone on the same
+  network: it applies `docker-compose.lan.yaml`, allows the LAN address in
+  Next's `allowedDevOrigins`, mints a claim link and prints a QR code.
+  Hot reload works over the LAN; `--off` puts the stack back.
+
+### Changed
+
+- The element's defaults are plain. chat.mringdal.com's palette, Nunito and
+  Bebas moved to `src/app/theme.css`, which only the standalone site loads,
+  so an embed no longer inherits one site's branding.
+- The card's height cap follows the chat's own width (a container query), not
+  the window's. A chat in a narrow dialog on a wide screen fills the dialog.
+- chat.mringdal.com gives the chat the whole page: a top bar with the title
+  and the questions left, the chat edge to edge under it, and a footer with
+  the GitHub and LinkedIn links. It frames the chat as any host would, with
+  the chat's header off and no card (`frame="page"`); the transcript keeps a
+  readable column. The chat's built-in header and card stay the defaults for
+  embeds.
+- The visitor's own messages follow `--chat-on-accent` again, through
+  `--chat-user-bubble-text`: they sit on the accent, and 0.8.0's
+  `--chat-text` put pale text on a pale accent.
+- On a phone or tablet, the standalone footer steps aside while the input has
+  focus, which is what brings the on-screen keyboard up, so the input sits
+  right on the keyboard. It comes back when the input loses focus.
+- The standalone title scales with the page, 2.5rem down to 1.5rem, and the
+  count drops to its own line on a phone rather than breaking the title.
+- The title is written in normal case. Bebas draws capitals regardless, and
+  screen readers no longer spell it out.
+- chat.mringdal.com's theme: a coral send button (`--chat-action`), with the
+  title, avatar and questions-left text in a pale gold of their own.
+
+### Removed
+
+- `--chat-accent-soft`. It only coloured the input's focus glow, which is now
+  derived from `--chat-input-focus`.
+
+### Fixed
+
+- The embed's title was a 2.5rem system font at weight 400: the Bebas size
+  and weight, without Bebas, which never reached the shadow root.
+- One tap on send sends on a phone or tablet. Pressing it took focus from
+  the input, which brought the footer back and moved the composer under the
+  finger, so the first tap missed. The button now keeps focus on the input,
+  and the keyboard stays up for the next question.
+- Asking a question on a plain-http page threw: `crypto.randomUUID()` only
+  exists on secure pages. Message ids fall back to `getRandomValues`. The
+  HTTPS site was never affected.
+- The send button is as tall as a one-line input. It was a fixed 44px beside
+  a 50px field.
+
+## [0.8.0] - 2026-09-26
+
+### Added
+
+- `<workchat-chat>`, the chat as a custom element any page can embed with a
+  script tag. Built from the app's own components into `public/embed.js` and
+  served at `/embed.js`, so a release here reaches every embedding page on its
+  next load. Attributes `api-url`, `about`, `claim` and `owner-name`; a
+  `workchat-usage` event; the `--chat-*` palette as its styling surface. See
+  `frontend/EMBED.md`.
+- `about` puts a question in the composer, unsent, for the visitor to read,
+  edit or delete.
+- `npm run test:contract` runs the site's Playwright suite against a freshly
+  built bundle, so a change to the element's surface fails here first.
+
+### Changed
+
+- New type and palette: Nunito Light for text, Bebas Neue for the title, and a
+  blue scheme. Only Nunito (OFL) is committed; Bebas comes from
+  `next/font/google`, because the Fontshare copy's licence forbids a public
+  repository.
+- The GitHub and LinkedIn links moved out of the chat header onto the
+  standalone page, below the card.
+- The composer is 16px at every width, so a question is the same size typed
+  as it is once sent. It was 14px on desktop.
+- Your own messages take `--chat-text` like the rest of the text.
+
+### Removed
+
+- The embed's `owner-github` and `owner-linkedin` attributes, with the links
+  they fed. A page still setting them gets nothing, and no error.
+
+### Fixed
+
+- `backend/uv.lock` carried 0.7.0 through 0.7.1 and 0.7.2.
+
+## [0.7.2] - 2026-09-22
+
+### Fixed
+
+- The chat no longer slides up the screen on a phone while a reply streams in.
+  Auto-scroll called `scrollIntoView()` on a sentinel at the end of the
+  transcript, once per token. `scrollIntoView` is not scoped to the nearest
+  scroller — it moves every scrollable ancestor it can, which on a phone
+  includes the page itself while the keyboard is animating and `--app-height`
+  is a frame behind it. It now sets `scrollTop` on the transcript, which can
+  only ever move the transcript.
+- Asking a question while scrolled up now brings the transcript back down, so
+  the question and its answer no longer land below the fold.
+- A reply that arrives in one large chunk is followed instead of stopping
+  auto-scroll. Whether the reader is following is now remembered from their
+  last scroll rather than measured after the new content has landed.
+- The transcript stays on its newest line when the keyboard resizes it.
+- Auto-scroll runs before paint, removing a one-frame jitter per token.
+
+### Reverted
+
+- The `min-h-0` added to `main` and the chat card in 0.7.1. It did not address
+  the bug above; the transcript already carried the `min-h-0` that matters.
+
+## [0.7.1] - 2026-09-21
+
+### Fixed
+
+- Resizing bug on mobile.
+
+## [0.7.0] - 2026-09-21
+
+### Fixed
+
+- The Geist font now actually applies. It was declared as
+  `--font-sans: var(--font-sans)` — a custom property referring to itself,
+  which is a dependency cycle, so it computed to the guaranteed-invalid value.
+  The rule that read it carried no fallback, and an invalid value on an
+  inherited property means `inherit`; the root element has no parent, so it
+  landed on whatever font the browser starts with. Geist was downloaded on
+  every page load and thrown away, and the compiled stylesheet never once
+  mentioned it. Geist Mono was being preloaded on top of that and no rule ever
+  referred to it at all; it has been removed rather than fixed.
+
+- The composer stays above the on-screen keyboard on iOS. The previous fix
+  asked the browser to shorten the layout viewport when a keyboard opens, which
+  Chromium honours and Safari ignores — Safari shrinks only the *visual*
+  viewport and scrolls to reach the focused field, and since the document can
+  no longer scroll there was nowhere for it to go. The height is now measured
+  from the visual viewport, which is the one number both engines report
+  honestly, and published as a custom property so a keyboard animation does not
+  re-render the transcript sixty times a second. A pinch-zoom shrinks that
+  measurement too, so zooming is excluded: matching it would crop the chat to
+  whatever slice of the page was on screen.
+
+- The chat no longer shows a band of white below itself on a phone. Three
+  things were true at once and only together did they produce it: the shadcn
+  `--background` token was pure white and `body` painted with it, the root
+  element painted nothing at all — and the root is what the browser propagates
+  to the viewport canvas, which is the surface an overscroll drags into view —
+  and nothing declared a `color-scheme`, so the scrollbars, the caret and the
+  fill behind a rubber-band were all drawn for a light page regardless. The two
+  canvas tokens now point at the chat's own background, the root paints it, and
+  `color-scheme: dark` covers the surfaces no background can reach.
+
+- The keyboard no longer pushes the page somewhere it does not paint. There was
+  no viewport declaration at all, so the layout viewport stayed a full screen
+  tall when the keyboard opened; the composer ended up behind it and the browser
+  scrolled the document to reach it. `interactive-widget=resizes-content` asks
+  for the layout to shrink instead, so `dvh` keeps meaning what the layout
+  assumes it means. Document scrolling is now impossible rather than merely
+  unlikely, which is what makes the fix hold on a browser that ignores the hint.
+
+- The composer no longer scrolls before anything has been typed. Its placeholder
+  was long enough to wrap, and a placeholder is laid out inside the box, so a
+  one-row `textarea` became two rows tall and scrollable while still empty. All
+  three placeholders are now short enough to fit, and a test asserts it for each
+  of them rather than for the one that was reported.
+
+- The composer shrinks back after a multi-line question is sent. Its height was
+  written from inside `onChange`, which is the one moment the value changes
+  because someone typed — sending clears it through state with no keystroke
+  behind it, so the box kept the height of the question that had just left it.
+  It follows the value now, so every route to a new one resizes.
+
+- The composer asks for 16px on a phone. Below that, iOS Safari zooms the page
+  when the field takes focus and does not zoom back out, which leaves the layout
+  offset behind the keyboard and looks exactly like the chat having broken.
+  Desktop keeps the 14px it always had. The alternative — disabling zoom in the
+  viewport meta — would have fixed it by taking pinch-zoom away from everyone.
+
+- The card is no longer capped below a phone's viewport. A flat 700px maximum
+  left a band of dead background above and below the chat on exactly the screens
+  with least room to spare; the cap now applies from the `sm` breakpoint up.
+
+### Changed
+
+- The whole visual scheme lives in one place. Colour, type, spacing and radius
+  were spread across sixty-odd unnamed utilities in six components, with three
+  literal `white`s and one stray `bg-slate-400` outside the token system
+  entirely, and three adjacent panels of one card carrying three different
+  paddings that nobody could tell apart from drift. They are named by role now
+  — `canvas`, `panel`, `ink`, `accent`, `title`, `body`, `gutter`, `control` —
+  and a restyle is an edit to the top of one stylesheet.
+
+- The send button renders its own colour. It used to be painted by a custom
+  class layered over a Button that was simultaneously painting itself from the
+  stock shadcn palette; the one that won was decided by CSS layer ordering
+  rather than by anything written down, and the class was invisible to the
+  merge step that is supposed to resolve exactly that. The palette the Button
+  reads now *is* this app's palette, so the override is gone rather than
+  refereed.
+
+- The end-to-end suite drives `?claim=` links. Eighteen of its nineteen
+  navigations used `?token=`, the v1 shape being retired because it carries the
+  access token in the URL — so the coverage was aimed at the path that is going
+  away while the one that stays had a single happy-path test. Four of
+  `useSession`'s five statuses had no test at all; they do now, along with the
+  token refresh, the rotation conflict that has to be retried, and the claim
+  being stripped from the address bar.
+
+- The `?token=` tests that remain say so. They are in `e2e/legacy.spec.ts`,
+  every title prefixed `legacy:`, with a note to delete the file when the last
+  of those links expires. One of them covers something no test ever has: a
+  genuinely v1-shaped token. The suite's fake token has always carried v2
+  claims, so the fallback that reads the grant from `jti` had never run.
+
+- The frontend is split by what each piece knows. `useChat` was 462 lines and
+  owned the copy, the error-to-copy mapping, the greeting, the transcript, the
+  persistence, the allowance, the composer's state and the streaming all at
+  once; it is 200 lines of orchestration now. What the app says to a person is
+  in one file that imports nothing. The transcript is a reducer, so "what may
+  happen to a message" is a list of seven things rather than four closures
+  spread through a send path. The allowance, the stored conversation and the
+  greeting each have a hook. None of this changes what the page does — the
+  behaviour suite that guards it did not change either.
+
+- The chat's parts read what they need instead of being handed it. Two contexts
+  rather than one, deliberately: the transcript changes on every streamed token,
+  and a single context would have re-rendered the header and the composer once
+  per token for the length of every reply — worse than the prop-drilling it
+  replaced.
+
+- The service layer no longer imports from the hook layer. `AuthFetch` and
+  `SessionStatus` were declared inside `useSession`, so two services and every
+  pure module had to reach into a React hook to name them; they are types in
+  `src/types/session.ts` now. The backend's URL was written out three times and
+  is written once.
+
+- Playwright runs a phone as well as a desktop. Every fault above is invisible
+  at 1280px and obvious at 393px, and the existing suite passed throughout. The
+  new project is a chromium device descriptor, so CI needs no second browser.
+
+### Removed
+
+- Around seventy dead custom properties, including a whole dark-mode palette
+  that nothing could ever select — the variant it was written for is
+  class-based and no element has ever carried the class. Darkness here comes
+  from the palette itself and from `color-scheme`. The variant declaration
+  stays: without it those `dark:` utilities would fall back to
+  `prefers-color-scheme` and start applying on anyone's machine set to dark.
+
+- Dead code: an empty `lib/jwt.ts`, five shadcn primitives nothing rendered, the
+  five Next scaffolding SVGs in `public/`, a `getToken()` that read a credential
+  from the URL the server has read since the owner work landed, and two
+  dependencies — `@tanstack/react-query` and `motion` — that were installed and
+  never imported.
+
+## [0.6.0] - 2026-09-20
+
+### Fixed
+
+- A reply that fails mid-stream no longer leaves the page unusable. 0.4.0 added
+  an error frame so a failure would be distinguishable from a dropped
+  connection; the frontend logged it to the console and did nothing else. No
+  terminal frame follows a failure, so the bubble stayed in its streaming state
+  — and because the composer is shut while a reply streams, it stayed shut. The
+  only way out was a reload, with nothing on screen saying why. The failure is
+  now shown where the answer would have been, and the allowance is re-read,
+  since the question was spent before the model was ever called.
+
+- A reload keeps the conversation. The session already survived one — a
+  single-use claim link would be a cruel thing to lose to F5 — but the
+  transcript and the conversation id did not, so the agent lost every turn of
+  context and the backend opened a second conversation row for the same person.
+  Both are kept for the life of the tab now, keyed to the grant so a different
+  link opened in the same tab starts clean. The access token is deliberately
+  not kept: it lives in memory so that script on the page cannot read it, which
+  is the whole reason the refresh half is an httpOnly cookie.
+
+- Scrolling up to re-read an answer no longer drags you back down. The
+  transcript followed every change to the message list, which during a streamed
+  reply is every token, so the one moment you might want to look back was the
+  one moment you could not. It follows only when you are already at the bottom.
+
+### Changed
+
+- The chat says it is opening a session instead of greeting nobody. A claim
+  link costs a round trip before it knows who is reading, and that gap was
+  filled with a bare "Hi! 👋" that then flipped to a name. It shows the same
+  typing indicator every reply uses. A `?token=` link is the access token
+  itself, so that hirer is still greeted immediately.
+
+- The header and the browser tab name whoever the deployment belongs to, from
+  `OWNER_NAME`, `OWNER_GITHUB_URL` and `OWNER_LINKEDIN_URL`. They had been
+  hardcoded to the author — something 0.1.11 admitted and deferred — and the
+  tab still read "Create Next App". Read on the server per request rather than
+  through `NEXT_PUBLIC_`, which `next build` would freeze into the bundle: one
+  image serves any owner, and changing a name is a restart. A variable set but
+  empty means there is no such link and hides it; unset means use the default.
+
+- The composer is a textarea. Enter still sends, Shift+Enter opens a second
+  line, which a two-sentence question needs. Links in an answer open in a new
+  tab rather than navigating away from the chat.
+
+- Screen readers are told what is happening: the transcript is a log, the
+  composer and the send button are labelled, and a hidden status line says when
+  a reply is being generated. Deliberately not a live region around the reply —
+  that reads a streamed answer out one token at a time.
+
+### Added
+
+- Playwright tests for the chat page, and CI runs them. This was the first
+  frontend test in the project: the three fixes above are exactly the kind no
+  type checker sees, and every one of them had been reasoned about rather than
+  observed. Each test is named for what broke, and the two that matter most
+  were checked by putting the bug back. The backend is mocked at the network
+  boundary, so they need no database, no key and no stack.
+
+- `docs/architecture.md` records what a request actually costs, measured rather
+  than estimated — which statements each endpoint makes, why only one of them
+  is a question a token claim could answer, and why the session read that
+  remains is worth keeping.
+
+## [0.5.0] - 2026-09-20
+
+### Removed
+
+- `python -m app.build_index` is gone, and so is `resources/index.json`. What
+  remains of that script is `python -m app.build_skills`, which only regenerates
+  the skills list inside `skills.md` — a tracked file, produced locally and
+  committed like any other source. The server never runs it.
+
+  Deployment lost two steps with it. There is no index to build after a release,
+  and no `chown -R 1000:1000 backend/resources` to remember beforehand, because
+  nothing in the container writes to that directory any more; in production it
+  is now mounted read-only. Updating is `git pull` and `up -d --build`, which is
+  what the deploy workflow already ran.
+
+### Changed
+
+- The CV index is built by the process that serves it. On startup the backend
+  scans `backend/resources/`, parses the frontmatter of every markdown file and
+  holds the corpus in memory. The records, their order and the ranking are
+  unchanged — what is gone is the step between editing a CV file and the site
+  knowing about it.
+
+  Forgetting that step was the failure. The index was a gitignored artifact
+  built by hand, and the deploy never built it, so a release that changed any CV
+  record left the site answering from the previous one — with `/health` passing
+  throughout, so nothing surfaced the staleness. The index was never expensive
+  enough to be worth an artifact: twenty files and about 46 KB of markdown, with
+  no embeddings and no API calls behind it, read in milliseconds.
+
+  A record that will not parse is skipped with its name in the log rather than
+  taking the other nineteen with it. A resources directory that yields nothing
+  at all stops the server before it binds a port, so the container never reports
+  healthy and a deploy that shipped a broken mount fails instead of going live
+  with nothing to answer from.
+
+  The markdown is read in the same pass that parses the frontmatter, so the
+  first search of a running server touches no disk, and a record nobody can read
+  surfaces at boot rather than on the one question that needed it.
+
+  Editing a record on a running server still needs a restart — the corpus is
+  read once. In development that is automatic: the resources directory is
+  watched, so a saved edit reloads the app and rebuilds the index.
+
+- Decoding a token produces typed claims rather than a bare dict. `decode()`
+  returned `dict`, so the type of every v2 claim was `Any` through the paths
+  that decide who may spend a hirer's quota. The claims are their own model now,
+  deliberately not the one used to mint tokens: that one defaults `max_queries`
+  to 20, which would invent a quota for a token carrying none, and types `typ`
+  as a literal, which would turn an unrecognised token type into a parse failure
+  where the service wants to answer "not an access token".
+
+  Nothing about a v1 token's shape is tightened — every field is optional, and
+  those links are in inboxes and on printed QR codes. A `ver` that is a boolean,
+  a string or a float is now refused rather than read as version 1; no token
+  this service signs carries one, and both answers were already 401.
+
+- The admin write endpoints return response models instead of hand-built JSON,
+  so their output is validated and the ids are serialised rather than converted
+  by hand. Issuing a token still builds its own response, because it is the one
+  endpoint that answers in two media types.
+
+- Configuration is an object built on demand rather than a page of module
+  constants read at import. `app/common/config.py` no longer exports anything
+  environment-derived: `SECRET_KEY` is `get_settings().secret_key`, and a fork
+  carrying local patches against those names will need the same edit. Values
+  that consult no environment — the signing algorithm, the tool-round cap, the
+  cookie path — stay constants, because they are facts about the application
+  rather than settings.
+
+  Importing this application used to require a fully configured environment.
+  Seven secrets were read at module level, the system prompt was loaded from
+  disk, the database engine was opened, a `FastAPI` was constructed, and `Auth`
+  read the signing key when the class was defined — all before anyone had asked
+  for a server. The test suite paid for it in the only currency available: seven
+  environment variables set above its own imports, and a `# noqa` on every
+  import below them. An application is built by `create_app()` now, and
+  `app/main.py` calls it, which is the moment a missing secret should stop
+  everything.
+
+  Logging is the deliberate exception and still reads `DEV_MODE` directly:
+  handlers have to exist before anything logs, and a misconfiguration that could
+  not be logged would be the wrong trade.
+
+- Services take their collaborators instead of reaching for them. `CVSearch`
+  takes the directory it reads, `Auth` takes its notifier, and `Auth`'s methods
+  take plain arguments — the three dependency functions that wire them to a
+  request live at the bottom of that module, the same service-and-adapter split
+  the chat service already keeps. Nothing about what the application does
+  changes; what changes is that overriding any of it in a test is now the
+  mechanism FastAPI already provides rather than reaching into a module.
+
+### Fixed
+
+- A hirer's contact details and a grant's `token_hash` no longer reach the log.
+  Issuing one token wrote the email and phone five times and the hash once, all
+  at INFO and so all of it in production — while the same codebase keeps chat
+  message text behind a flag at debug, because logging that was judged
+  unacceptable. Contact details were held to no standard at all.
+
+  The hash is the worse half: it is what a bearer is authenticated against, so a
+  log holding it holds the verifier for every token on the grant. The issue path
+  logs identifiers now — `token_id`, `user_id`, `company` — and a redaction
+  filter on the log handler drops a deny-list of field names wherever they
+  appear, including nested inside a record-shaped payload. The call sites are
+  already written not to pass them; the filter is what stops the next one, since
+  a log is the only store here with no retention policy and no redaction path.
+
+- SQL echo is its own opt-in rather than following `DEV_MODE`. It writes every
+  statement and its bound parameters to the log, which on the issue path meant
+  the same email, phone and hash again — in the message rather than the
+  structured fields, where the redaction filter cannot reach them. Every local
+  session was doing it by default. `SQL_ECHO=1` turns it back on for debugging a
+  query.
+
+- `RESOURCES_DIR` and `SYSTEM_PROMPT_PATH` can be set in `backend/.env`. Both
+  were computed *above* the `load_dotenv()` call, so neither had ever been
+  readable from that file — only from the real environment, which is not where
+  the documentation says configuration lives.
+
+## [0.4.0] - 2026-09-19
+
+### Removed
+
+- `POST /chat` is gone; chat is streaming-only. Nothing in the browser used it —
+  the client has always called `/chat/stream` — and keeping a second endpoint
+  meant keeping a second implementation of the same tool-calling loop, which is
+  where the duplication this release removes came from. The eval harness now
+  reads the stream, and the dead `send()` path went with it.
+
+### Changed
+
+- The chat service is a pipeline of generators rather than a class. A turn
+  yields domain events; a recorder passes them through and writes the
+  transcript; the route encodes them as SSE frames. Nothing in the service
+  mentions SSE and nothing in the route mentions OpenAI — which is what makes
+  one loop enough where there were two.
+
+  Everything a turn accumulates now lives in generator locals, so a second turn
+  cannot inherit the first one's reply or tool counts. The previous class kept
+  them on the instance and relied on a fresh one being built per request.
+
+- Searching the CV no longer imports the OpenAI SDK. What the model is shown and
+  told about the results — the schemas, the JSON encoding, the prose steering it
+  toward opening an entry rather than answering from a summary — moved to an
+  adapter beside the chat service. The index and the markdown it reads are now
+  cached rather than re-read on every search.
+
+### Fixed
+
+- A reply that fails mid-stream now says so. The client receives an error frame
+  instead of a stream that simply stops, which was indistinguishable from a
+  dropped connection; the reason is logged server-side rather than shown.
+
+- An empty assistant message is no longer stored and echoed back, so a turn that
+  produced no text stops appearing as a blank entry in the next question's
+  history.
+
+- A tool call the service cannot run is dropped rather than assembled. The
+  non-streaming path filtered these and warned; the streaming path never looked,
+  and there is only one path now.
+
+## [0.3.0] - 2026-09-19
+
+### Changed
+
+- Persistence moved behind a repository layer. `app/services/db.py` — which had
+  grown to hold every query in the app — is gone, replaced by
+  `app/repositories/`: a contract stated in domain terms, and an `sql/` package
+  that is the only place naming SQLAlchemy. `AsyncSession` now appears in two
+  files rather than nine, and no ORM row crosses into a route or a service.
+
+  There is deliberately no unit of work and no `commit` in any abstraction. A
+  SQLAlchemy `Session` is already one, and a store without transactions could
+  only stub a `commit` while implying a guarantee it cannot keep. Instead the
+  request owns its transaction and repositories flush — except for a named few
+  that are durable on return, because a spend a later failure could undo is a
+  free question.
+
+- The chat model is configurable per environment. Development defaults to
+  gpt-4.1-nano, where the question is whether the tool round-trip works rather
+  than whether the answer is good; production still gets gpt-4.1-mini, which
+  measurably answers depth questions better. `OPENAI_MODEL` overrides either.
+
+### Fixed
+
+- Conversation message counts no longer lose turns. The count was incremented in
+  Python against a stale read, so two turns arriving together both wrote the same
+  value and one was lost — five concurrent questions recorded two. The database
+  computes the increment now.
+
+- Listing conversations stopped issuing a query per row. A page of fifty cost a
+  hundred and one round trips, all to fetch two truncated preview strings; it is
+  one windowed query now.
+
+- Refreshing a token can no longer fail while notifying the operator. Replay
+  detection rolled back a session whose rows the caller still held, so reading
+  the grant's owner afterwards risked lazy IO outside the async context; the
+  caller now holds a plain value that no rollback can expire.
+
+## [0.1.13] - 2026-08-14
+
+### Changed
+
+- The agent runs on gpt-4.1-mini. Retrieval had stopped being the limiting
+  factor: over 26 questions x 3 runs the previous model scored 22-24 against
+  mini's 25-26, and its remaining failures were all cases where it fetched the
+  right record and could not pull the fact out of it. It also never once worked
+  out how long a role has run — "how long has he been at iEDI" got "since
+  September 2025" in every arm ever measured — where mini answers it. Costs
+  about a second more per reply.
+
+### Fixed
+
+- Asked to elaborate, the agent reads the record instead of paraphrasing its
+  summary. Search results now say which records carried every word of the query
+  and ask for those to be opened, and say plainly that "tell me more", "why" and
+  "elaborate" cannot be answered from a summary. Questions whose answers appear
+  only in a record body went from 2 of 6 to 6 of 6, and the agent now opens a
+  record for 22 of 26 questions rather than roughly 1 in 20 — while still not
+  bothering when nothing matched.
+
+- A record is found whatever the case of its filename. The model retypes the
+  name out of the search result and sometimes alters it — asking for "iEDI.md"
+  when the file is "iedi.md" — which returned "no such file" and, being
+  indistinguishable from the record not existing, sent it back to the summary.
+
+### Added
+
+- Eval probes for depth: six questions whose answers exist only inside a record
+  body, since every earlier question could be answered from a summary and so
+  could not measure whether the agent ever opens anything.
+
+## [0.1.12] - 2026-08-14
+
+### Fixed
+
+- The agent no longer denies things the CV plainly contains. Asked whether
+  Michael had ever simplified despatch advices, it replied that there was no
+  record — while iedi.md describes the redesign outright. Two causes, both now
+  addressed: search results were unranked, so the record matching every word of
+  a query sat among records that merely share one common word; and the cases
+  themselves lived inside large role records whose summaries could not represent
+  them. Measured over 20 questions x 3 runs, wrong answers fell from 6-7 to 1.
+
+- Search results are ordered best-first, each carrying how much of the query it
+  matched. Unranked, an eleven-record result read as noise and the agent
+  answered from whichever summary came first.
+
+- Common words no longer decide a result. Matching is OR'd and substring-based,
+  so "at" on its own matched every record in the CV — it sits inside
+  "integrations" — and a question like "despatch advices at iEDI" came back
+  claiming the whole CV was relevant.
+
+- A hiring manager gets an answer when the tool-call budget runs out. Exhausting
+  MAX_TOOL_ROUNDS ended the turn on whatever had been streamed, which for a model
+  still asking for tools is nothing at all: an empty reply. One further call with
+  tools disabled now yields a thinner answer built from what was already fetched.
+
+### Added
+
+- Per-case CV records, so a case has a summary that describes it rather than
+  being buried in a role: the despatch advice redesign, the customer API
+  consolidation, and the Kubernetes to Nomad migration.
+
+- backend/evals: a 20-question harness that scores the agent on wrong denials,
+  invented answers and missed facts, and attributes every failure to the
+  retrieval step that caused it. It is what these numbers come from, and it
+  re-scores saved runs when the scoring changes, so past results stay comparable.
+
+## [0.1.11] - 2026-08-14
+
+### Fixed
+
+- No gender is hardcoded in application code (frontend has my name hardcoded though). 
+  The frontend however needs some additional tweaks, so we're saving this for later.
+  This was more work than expected, but this is a good place to leave it for now and iterate.
+
+## [0.1.10] - 2026-08-14
+
+### Fixed
+
+- The agent knows what day it is. It was reasoning from its training cutoff,
+  telling hirers "today is in early 2025" and miscalculating how long Michael
+  has been at iEDI.
+
+## [0.1.9] - 2026-08-14
+
+### Added
+
+- The conversation list now shows the agent's latest reply beside the question,
+  so a wrong answer is visible without opening each conversation.
+
+### Removed
+
+- The "questions are stored" notice in the chat UI.
+
+## [0.1.8] - 2026-08-14
+
+### Fixed
+
+- The agent no longer opens with a claim of microservices experience before
+  correcting itself; the tag that suggested it is gone, and the record is still
+  found by search.
+
+## [0.1.7] - 2026-08-14
+
+### Added
+
+- Chat turns are now stored, so it is possible to see what hirers actually asked
+  and what the agent answered. Readable via `GET /admin/conversations`, content
+  scrubbed after 30 days.
+
+### Changed
+
+- Logs are structured JSON and carry a request id. `extra={...}` fields were
+  previously discarded by the format string; message content stays out of logs
+  and lives only in the database.
+
+### Fixed
+
+- `search_cv` reports when nothing matched instead of returning the whole CV,
+  which the model could not tell apart from a precise hit and answered from by
+  inference.
+- The iEDI record now states its architecture — a monolith surrounded by
+  customer-tailored APIs — and describes RabbitMQ's actual, partial role.
+
+## [0.1.6] - 2026-08-14
+
+### Changed
+
+- CV records now carry the vocabulary a hiring manager would actually search
+  for, and the orphaned records are reachable by link.
+
+## [0.1.5] - 2026-08-14
+
+### Added
+
+- A Frameworks and Tools record, and the real iEDI stack on the experience
+  record it was missing from.
+
+## [0.1.4] - 2026-08-14
+
+### Fixed
+
+- Long unbroken text no longer overflows the message bubble.
+
+## [0.1.3] - 2026-08-14
+
+### Fixed
+
+- The chat window is no longer overlapped by the mobile browser's URL bar.
+
 ## [0.1.1] - 2026-08-12
 
 ### Security

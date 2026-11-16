@@ -2,8 +2,8 @@
 
 The stack is served by Caddy (automatic Let's Encrypt certificates) in front of
 the Next.js frontend and the FastAPI backend. Nothing is tied to a particular
-domain — you set yours in `backend/.env`. Every command below uses your own
-`SITE_DOMAIN`.
+domain — you set yours in `backend/.env`. The author's instance runs at
+https://chat.mringdal.com; every command below uses your own `SITE_DOMAIN`.
 
 ```
 Internet ──▶ Caddy (443/80) ──┬─▶ frontend:3000 (Next.js)
@@ -26,7 +26,7 @@ Every step is required. Skipping the system prompt or the `.env` symlink stops
 the stack from starting at all.
 
 ```bash
-git clone https://github.com/sandrastephanie/professionalprofiler.git && cd professionalprofiler
+git clone https://github.com/buzzgreyday/workchat.git && cd workchat
 ```
 
 - [ ] **1. Secrets.** Generate each with `openssl rand -hex 32`, and add your
@@ -41,6 +41,10 @@ git clone https://github.com/sandrastephanie/professionalprofiler.git && cd prof
       control. They must agree. The Caddyfile and compose file read the first
       two, so there is no tracked file to edit:
       - `SITE_DOMAIN` — Caddy site address, e.g. `chat.example.com` (no scheme)
+      - `API_DOMAIN` — the API's own host, e.g. `api.example.com` (no scheme).
+        Same Caddy, same backend; the frontend is built to call it. Needs its
+        own DNS record pointing here. Must share the registrable domain with
+        the pages that call it, for the SameSite=Strict refresh cookie
       - `ACME_EMAIL` — where Let's Encrypt sends expiry and problem notices
       - `BASE_URL` — e.g. `https://chat.example.com`, used in QR-code token links
       - `ALLOWED_HOSTS` — e.g. `https://chat.example.com`, CORS origins (scheme required)
@@ -55,7 +59,7 @@ git clone https://github.com/sandrastephanie/professionalprofiler.git && cd prof
       ```
 
 - [ ] **4. The system prompt.** Gitignored, and the backend **will not start**
-      without it — `config.py` reads it at import and raises if it is missing or
+      without it — `Settings` reads it at startup and raises if it is missing or
       empty.
       ```bash
       cp backend/resources/system-prompt.md.example backend/resources/system-prompt.md
@@ -71,31 +75,32 @@ git clone https://github.com/sandrastephanie/professionalprofiler.git && cd prof
       $EDITOR backend/resources/contact.md
       $EDITOR backend/resources/*.md
       ```
-
-- [ ] **6. Ownership.** `backend/resources` is bind-mounted rather than baked
-      into the image, and the container runs as UID/GID 1000, which needs write
-      access to it.
-      ```bash
-      sudo chown -R 1000:1000 backend/resources
+      The header and the browser tab are the other half of that — they name
+      you, and they default to the author. Set these three in `backend/.env`:
       ```
-
-- [ ] **7. Build the index.** Generates `backend/resources/index.json`
-      (gitignored) from the markdown. It is read per request rather than at
-      startup, so the backend boots and `/health` passes without it — but
-      `/chat` cannot answer until it exists.
-      ```bash
-      docker compose -f docker-compose.prod.yaml run --rm backend python -m app.build_index
+      OWNER_NAME=Your Name
+      OWNER_GITHUB_URL=https://github.com/your-handle
+      OWNER_LINKEDIN_URL=https://linkedin.com/in/your-handle
+      OWNER_WEBSITE_URL=https://your-site.example
       ```
+      The frontend reads them per request, so changing one later is
+      `docker compose -f docker-compose.prod.yaml restart frontend` — no
+      rebuild. A link left empty is omitted rather than rendered dead.
 
-- [ ] **8. Bring the stack up.** The first run also builds `caddy/` from source
+- [ ] **6. Bring the stack up.** The first run also builds `caddy/` from source
       (adding the rate-limit module via `xcaddy`), which pulls a fair amount of
       Go modules — expect this to take a few minutes longer than the rest.
       ```bash
       docker compose -f docker-compose.prod.yaml up -d --build
       ```
+      The backend scans `backend/resources` into memory as it starts. There is
+      no index to build and no ownership to fix: the mount is read-only and
+      nothing in the container writes to it. If the scan finds no records the
+      backend exits rather than serving, so `--wait` fails here instead of the
+      site going live with nothing to answer from.
 
-- [ ] **9. Verify** — see below.
-- [ ] **10. Mint your first access token** — see "Issue an access token".
+- [ ] **7. Verify** — see below.
+- [ ] **8. Mint your first access token** — see "Issue an access token".
 - [ ] *(Optional)* Set up a nightly `pg_dump` cron — see "Backups".
 
 Caddy provisions a Let's Encrypt certificate on the first request to your
@@ -121,6 +126,28 @@ git pull
 docker compose -f docker-compose.prod.yaml up -d --build
 ```
 
+That is the whole procedure, and it is what the GitHub deploy workflow already
+runs on a push to `main`.
+
+It used to be four commands whose order was load-bearing, because the index was
+a gitignored artifact built by hand after the restart. A release that changed a
+CV record left the site answering from the previous index until someone
+remembered — and `/health` passed throughout, so nothing surfaced it. The
+backend scans the markdown at startup now, so the restart *is* the rebuild. The
+`chown` went with it: the container no longer writes to `backend/resources`, and
+the mount is read-only.
+
+**Editing a record on the server still needs a restart.** The corpus is read
+once, at startup, so a typo fixed in `bio.md` reaches the site on
+`docker compose -f docker-compose.prod.yaml restart backend` and not before.
+
+Afterwards `git status` should be clean. `skills.md` is tracked and generated —
+by `python -m app.build_skills`, run locally and committed like any other
+source. The server never runs it. If it shows as modified after a pull, the
+committed copy was generated from different content; regenerate it locally and
+commit that rather than leaving the working tree dirty for the next `git pull`
+to collide with.
+
 ## Issue an access token
 
 Run this from the host, against your public URL. `ADMIN_KEY` is read out of
@@ -137,6 +164,354 @@ Not `docker compose exec backend curl …`: the backend image is
 `python:3.13-slim` and ships no curl, and `$ADMIN_KEY` in that form would be
 expanded by the host shell (where it is unset) rather than inside the
 container, sending an empty header and getting a 401.
+
+## Guest trials
+
+Off until you turn them on. In `backend/.env`:
+
+```bash
+TRIAL_ENABLED=1
+TRIAL_SECRET=$(openssl rand -hex 32)   # paste the value, not the command
+```
+
+then `docker compose up -d backend`. The chat starts offering "Try it" to
+visitors without a link: a few questions (`TRIAL_MAX_QUERIES`, 3), once per IP
+address per day, at most `TRIAL_DAILY_LIMIT` (50) trials a day for everyone —
+so the most a day of strangers can cost is the product of the two. A
+proof-of-work in the visitor's browser (`TRIAL_POW_MAX_NUMBER`) makes each one
+cost a script something. All optional settings are listed in
+`backend/.env.production.example`.
+
+The address is read from `X-Forwarded-For`, which `docker-compose.prod.yaml`
+allows (`TRUST_PROXY_HEADERS`) because Caddy is the only way in and writes that
+header itself. Do not set it anywhere the backend's port is reachable directly:
+the header would be whatever a client chose to send. What is stored about an
+address, and for how long, is in [privacy.md](privacy.md#guest-trials).
+
+To turn trials off again, unset `TRIAL_ENABLED` and restart the backend; the
+endpoints answer 404 and the chat goes back to asking for a link.
+
+## Read what hirers asked
+
+Chat turns are stored in Postgres and read through the admin API, using the same
+`ADMIN_KEY` as token issuance:
+
+```bash
+KEY=$(grep '^ADMIN_KEY=' backend/.env | cut -d= -f2-)
+
+# Recent conversations, newest activity first
+curl -s https://chat.example.com/api/admin/conversations -H "X-Admin-Key: $KEY"
+
+# One conversation in full
+curl -s https://chat.example.com/api/admin/conversations/<id> -H "X-Admin-Key: $KEY"
+
+# Erase one conversation's content, keeping counts and timings
+curl -s -X POST https://chat.example.com/api/admin/conversations/<id>/redact \
+  -H "X-Admin-Key: $KEY"
+```
+
+`/admin/conversations` accepts `limit` (1-200, default 50), `offset`, `company`
+and `since`.
+
+These return hiring managers' questions verbatim, protected by one static header
+secret. Caddy rate-limits `/api/admin*` to 20 requests per minute per IP, but if
+you want defence in depth, restricting `/api/admin*` to a known source address at
+the Caddy layer is the obvious next step — deliberately not configured here,
+since a wrong address locks you out of minting tokens.
+
+Every route that costs something is metered per client IP:
+
+| Zone | Path | Limit | Why |
+| --- | --- | --- | --- |
+| `admin_zone` | `/api/admin*` | 20/min | Mints and revokes credentials |
+| `auth_zone` | `/api/v2/auth*` | 30/min | Writes rows; a claim link is worth guessing at |
+| `chat_zone` | `/api/chat*` | 30/min | Every call bills OpenAI |
+| `session_zone` | `/api/session` | 60/min | One indexed read, no write, no model call |
+
+**These are deliberately loose, and none of them is the access control.** That is
+the signed token, the per-grant query quota and the single-use claim — and unlike
+an IP counter, none of those can be confused by two people sharing an address. The
+limiter only exists to cap cost and noise, so the numbers are set where they will
+not fire on a real visitor: an attacker without a valid token gets a 401 before any
+of this costs anything, while turning away a hiring manager is a real loss.
+
+Sizing assumes a **shared egress IP**, which is the normal case here — a company's
+hiring managers reach the site from behind one NAT address, so several people
+claiming links in the same minute is ordinary use, not abuse. `session_zone` gets
+the most headroom because it is the cheapest call and the most frequent: every page
+load, every reload and every token rotation asks it how many questions are left.
+
+**The keying breaks silently behind a proxy.** `key {remote_host}` is the true
+client address only because Caddy terminates TLS directly. Put Cloudflare, a load
+balancer or another reverse proxy in front and `remote_host` becomes *that* host,
+collapsing every visitor into a single counter — the first busy visitor then
+rate-limits everyone else. Nothing errors; it just starts refusing people. If you
+ever front this, set `trusted_proxies` and key on the forwarded client address
+instead:
+
+```
+key {http.request.header.CF-Connecting-IP}   # or X-Forwarded-For, per your proxy
+```
+
+Clients are told apart from the backend's own 429 by the response body: the backend
+sends `{"detail": "Query limit reached"}` when a grant is spent, the limiter sends
+none. The frontend keys off that, so a rate-limited visitor is asked to wait rather
+than told their questions are gone.
+
+**Content is scrubbed after 30 days.** Add the purge to the same crontab as the
+backup, which is root's:
+
+```
+30 3 * * * /usr/bin/flock -n /tmp/workchat-purge.lock /opt/ai-cv/scripts/purge-chat-content.sh >> /var/log/workchat/purge.log 2>&1
+```
+
+Override the window with `CHAT_RETENTION_DAYS` in `backend/.env`. See
+`docs/database.md` for the erasure order and the backup caveat.
+
+**Expired sessions are pruned too.** Only relevant once you issue `version=2`
+links — `refresh_tokens` stays empty otherwise — but harmless to add either way:
+
+```
+45 3 * * * /usr/bin/flock -n /tmp/workchat-sessions.lock /opt/ai-cv/scripts/purge-expired-sessions.sh >> /var/log/workchat/purge.log 2>&1
+```
+
+Override the tail it keeps with `SESSION_GRACE_DAYS`.
+
+**Guest-trial rows go when their day ends.** Only relevant with
+`TRIAL_ENABLED`, harmless otherwise. The backend already drops earlier days
+whenever a trial is requested; this makes it true on a day nobody asks. It runs
+just after midnight UTC. The host's clock is on UTC, so the entry needs no
+`CRON_TZ`; set `CRON_TZ=UTC` above it if that ever changes.
+
+This one and the next belong in the `deploy` user's crontab, not root's. `deploy`
+can run Docker, so they don't need root. It can't write to `/var/log/workchat`, so
+they log to `~/logs`, which has to exist first:
+
+```
+5 0 * * * /usr/bin/flock -n /tmp/workchat-trials.lock /opt/ai-cv/scripts/purge-trial-requests.sh >> $HOME/logs/purge-trials.log 2>&1
+```
+
+**Question keys go after a day.** Each holds a hash of a question, kept only so a
+failed one can be retried for free. Also in `deploy`'s crontab:
+
+```
+50 3 * * * /usr/bin/flock -n /tmp/workchat-question-keys.lock /opt/ai-cv/scripts/purge-question-keys.sh >> $HOME/logs/purge-question-keys.log 2>&1
+```
+
+All four scripts take `--dry-run`, which counts instead of writing.
+
+**Revoking access.** `POST /api/admin/tokens/{token_id}/revoke` with your admin
+key kills a grant and every session under it, v1 links included. Revoking the
+grant is the part that matters for a v2 link: cutting sessions alone would leave
+anyone still holding the claim URL able to open a fresh one.
+
+## CI/CD
+
+`.github/workflows/ci.yml` runs on every push and pull request: backend types
+(mypy) and tests, frontend types, lint and production build, an
+apply-and-drift-check of the migrations against a real Postgres, a Caddyfile
+adapt using the custom rate-limit build, a secret scan over the full history, and
+both Docker images.
+
+`.github/workflows/deploy.yml` then deploys **main** to production automatically.
+It triggers on CI *completing successfully*, not on push — `workflow_run` is what
+orders the two, where `on: push` would race them.
+
+### Secrets it needs
+
+Set these under **Settings → Secrets and variables → Actions**. Until every one
+of them exists the deploy job logs a warning and skips, so merging to main stays
+green while this is unconfigured.
+
+| secret | what it is |
+| --- | --- |
+| `DEPLOY_HOST` | Hostname or IP of the server |
+| `DEPLOY_USER` | SSH user with permission to run `docker compose` there. Use a dedicated non-root account — see below |
+| `DEPLOY_SSH_KEY` | Private half of a keypair whose public half is in that user's `authorized_keys` |
+| `DEPLOY_KNOWN_HOSTS` | Output of `ssh-keyscan <host>`, pinning the host key |
+
+And as **variables** (not secrets — neither is sensitive):
+
+| variable | default | what it is |
+| --- | --- | --- |
+| `DEPLOY_REPO_DIR` | `/opt/ai-cv` | Checkout on the server |
+| `DEPLOY_HEALTH_URL` | *(unset)* | URL polled after deploying; unset means deploy without verifying |
+
+### The deploy account
+
+Deploy as a dedicated non-root user. The key sits in GitHub Actions secrets, so
+its blast radius is whatever that account can do; as root that is everything on
+the box, and there is no reason for CI to need that much.
+
+```bash
+useradd --create-home --shell /bin/bash deploy
+usermod -aG docker deploy          # docker group == able to run the stack
+usermod -p '*' deploy              # no password can authenticate
+```
+
+Use `usermod -p '*'`, **not** `passwd -l`. Both look like "lock the account", but
+`passwd -l` writes `!` to the shadow field and sshd then refuses the account
+outright — key and all — logging `User deploy not allowed because account is
+locked`. `*` means no password can ever authenticate while leaving key auth
+working, which is what a deploy account wants.
+
+The checkout has to live somewhere that user can own, so it is `/opt/ai-cv`
+rather than under `/root`. Moving it is safe because `docker-compose.prod.yaml`
+pins `name: ai-cv` — the compose project name, the container names and the
+`ai-cv_postgres_data` volume all come from that, not from the directory. Without
+that pin, moving the directory would rename the project and silently start
+against an empty database.
+
+Two things follow the move: `chown -R deploy:deploy` on the checkout, and the
+crontabs of root and `deploy`, whose backup and purge entries carry absolute paths.
+
+`scripts/setup-deploy-secrets.sh` does all six in one go — mints the key,
+installs it, pins the host key, proves the key can actually run `docker compose`
+there, and sets everything:
+
+```bash
+scripts/setup-deploy-secrets.sh --host chat.example.com --user deploy
+scripts/setup-deploy-secrets.sh --host chat.example.com --user deploy --dry-run   # look first
+```
+
+It needs the GitHub CLI (`gh auth login`). Values reach `gh` on stdin rather than
+as arguments, so none of them lands in `ps`, your shell history or your
+scrollback, and the private key is never printed at all. It refuses to write a
+key inside the repository: `.gitignore` covers `id_ed25519*` and `*.pem`, but the
+surest way not to publish a private key is not to create one next to a public
+checkout.
+
+By hand, if you would rather:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/workchat_deploy -C "github-actions deploy"
+ssh-copy-id -i ~/.ssh/workchat_deploy.pub <user>@<host>
+ssh-keyscan <host>            # -> DEPLOY_KNOWN_HOSTS
+cat ~/.ssh/workchat_deploy    # -> DEPLOY_SSH_KEY (the private half)
+```
+
+Either way, give that key the narrowest access you are willing to: it can restart
+production.
+
+### Releases
+
+After a successful deploy, a third job tags and publishes a GitHub Release — but
+only if the version changed. It reads `version` from `backend/pyproject.toml`; if
+`v<version>` is not already released it creates the tag and a release with
+auto-generated notes, and otherwise says so and stops.
+
+The number stays your decision. Nothing infers it from commit messages, so
+cutting a release is the same `chore(release):` commit you already make:
+
+```bash
+# bump the version, commit, merge to main
+sed -i 's/^version = ".*"/version = "0.2.0"/' backend/pyproject.toml
+git commit -am "chore(release): 0.2.0"
+```
+
+The release runs **after** the deploy, and only when the deploy actually ran —
+the deploy job reports whether it deployed or skipped for missing secrets, and
+the release job checks that. So a tag on GitHub always means the same thing: it
+built, it deployed, and it answered a health check. A release that was never
+deployed would be worse than no release, because it reads as a claim about
+production that is not true.
+
+### Why the deploy job is written the way it is
+
+This repository is public, which makes two things load-bearing rather than
+stylistic:
+
+- **Secrets reach the shell through `env:`, never `${{ }}` inside `run:`.**
+  Interpolating a secret into a `run:` block pastes the value into the generated
+  script, where a trace or a crafted argument can surface it; masking only covers
+  what the runner recognises on the way out.
+- **The job checks the run came from this repository and was not a pull request.**
+  `workflow_run` is privileged — it executes in the base repo with secrets no
+  matter who triggered the run it followed. The `branches: [main]` filter alone
+  is not enough, because anyone can fork, push a branch named `main`, and open a
+  PR whose CI run then carries `head_branch: main`.
+
+The CI workflow itself uses no secrets at all, which is what makes it safe to run
+on pull requests from forks. Keep it that way: a check that needs a credential
+belongs in the deploy workflow or behind an environment.
+
+### The approval gate
+
+The deploy job declares `environment: production`, and that environment carries a
+required reviewer. A green CI run on `main` therefore *queues* a deployment and
+waits — the run sits in `waiting` until someone approves it from the Actions tab.
+Remove the reviewer in repo settings to make deploys automatic again; neither
+direction needs the workflow edited.
+
+The environment is also restricted to the `main` branch. The workflow's own
+`workflow_run` trigger already filters on `main`, but `workflow_dispatch` does
+not, and that filter is a branch name rather than a guarantee about which branch
+holds the secrets. The environment policy is the backstop.
+
+Approving from the CLI needs a JSON body — the obvious `-f environment_ids[]=…`
+form sends a string where the API wants an integer, and the call silently
+no-ops:
+
+```bash
+gh api -X POST repos/<owner>/<repo>/actions/runs/<run-id>/pending_deployments \
+  --input - <<'JSON'
+{ "environment_ids": [<id>], "state": "approved", "comment": "…" }
+JSON
+```
+
+---
+
+## Other sites on this host
+
+This stack's Caddy holds ports 80 and 443, so any other site on the same host
+has to be served through it. It does that without this repo knowing about
+them: the Caddyfile ends with
+
+```
+import /etc/caddy/sites/*.caddy
+```
+
+and `docker-compose.prod.yaml` mounts `CADDY_SITES_DIR` (default
+`./caddy/sites`) there, read-only. The directory is empty in this repo, and a
+glob that matches nothing imports nothing, so a host with no other sites runs
+exactly as it did.
+
+Another project joins by doing three things on the host:
+
+1. **Join this stack's network**, `ai-cv_default` — named after the pinned
+   project, so it is stable. In its own compose file:
+   ```yaml
+   networks:
+     edge:
+       external: true
+       name: ai-cv_default
+   ```
+   and give its service an alias no service here uses, so Caddy can reach it
+   by name (`frontend`, `backend`, `db` and `caddy` are taken).
+2. **Write `<name>.caddy`** into the sites directory, with a site block that
+   names its host. Never a bare block: that would be a catch-all in front of
+   this site.
+3. **Reload Caddy** — graceful, no restart, and a config that does not parse
+   is refused with the running one kept:
+   ```bash
+   docker exec ai-cv-caddy-1 caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+   ```
+
+Certificates for the new host are issued on the reload, like this stack's, so
+its DNS has to point here first.
+
+Two things to know once another site has joined:
+
+- **`docker compose down` here warns** that it cannot remove `ai-cv_default`
+  while the other site's container is attached. The network stays, and the
+  next `up` reuses it. Deploys use `up`, not `down`, so they never see this.
+- **A broken `.caddy` file stops Caddy from starting** on its next restart,
+  and with it this stack. The reload refuses one, so a site that reloads after
+  writing its file finds out then; if the reload fails it should put its
+  previous file back.
+
+If a page on the other site embeds the chat, its origin also goes on
+`ALLOWED_HOSTS` in `backend/.env` — see `frontend/EMBED.md`.
 
 ## Logs
 
@@ -162,9 +537,66 @@ docker compose -f docker-compose.prod.yaml exec -T db \
 ls -lh backup-*.sql
 ```
 
+`*.sql` is gitignored, so a dump written into the checkout will not dirty the
+working tree or risk being committed — the dumps carry real hirer details and
+token rows. Move it off the host once taken; a backup sitting on the machine it
+protects is not a backup.
+
+### The private resource files
+
+`backend/resources/system-prompt.md` and `contact.md` are gitignored. They are
+therefore in no commit and no clone, and the production host is their only
+copy — if the server is lost, they are gone, and the backend **will not start**
+without a system prompt (see step 4 of "First deployment").
+
+Run this from your workstation, not the server; a backup that lives on the box
+it is protecting is not a backup:
+
+```bash
+scripts/backup-private-resources.sh
+```
+
+It writes a timestamped copy to `~/backups/workchat/`, verifies each file
+against the host by SHA-256, and points `~/backups/workchat/latest` at the run.
+It exits non-zero and skips the `latest` symlink if anything mismatches, so a
+truncated transfer cannot masquerade as a good backup. Override `BACKUP_HOST`,
+`BACKUP_REMOTE_DIR` or `BACKUP_DEST` if your setup differs.
+
+It connects as the deploy user, which is all the read access it needs — the
+resources directory is owned by `deploy`. That wants its own alias, because the
+`aicv-prod` one pins root's key with `IdentitiesOnly yes` and so cannot
+authenticate as anyone else:
+
+```
+Host aicv-deploy
+    HostName <your host>
+    User deploy
+    IdentityFile ~/.ssh/workchat_deploy
+    IdentitiesOnly yes
+```
+
+`pull-backups.sh` stays on `aicv-prod`: the database dumps land in
+`/root/backups`, which the deploy user cannot read.
+
+To restore onto a rebuilt host:
+
+```bash
+scp ~/backups/workchat/latest/{system-prompt.md,contact.md} \
+  aicv-deploy:/opt/ai-cv/backend/resources/
+sudo chown -R 1000:1000 backend/resources   # on the host, per step 6
+```
+
+`~/backups` is still one machine. For the system prompt in particular —
+unrecoverable and not reproducible from anything else — keep a second copy
+somewhere off this workstation as well.
+
 ## Notes
 
-- `NEXT_PUBLIC_API_URL` is baked into the frontend at build time as `/api`
-  so the browser hits the same origin (no CORS surface for normal traffic).
+- `NEXT_PUBLIC_API_URL` is baked into the frontend at build time as
+  `https://${API_DOMAIN}`, so the chat calls the API's own host with CORS
+  (`ALLOWED_HOSTS` must list `https://${SITE_DOMAIN}`). `${SITE_DOMAIN}/api`
+  still proxies to the same backend. Session cookies belong to the host that
+  set them, so moving the API to a new host costs every open session one
+  sign-in — once, at the switch.
 - `/docs`, `/redoc`, `/openapi.json` are disabled when `DEV_MODE=0`.
 - The backend and Postgres are not exposed on the host — only Caddy is.

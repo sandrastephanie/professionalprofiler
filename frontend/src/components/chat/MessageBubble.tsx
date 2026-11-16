@@ -1,8 +1,9 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import Avatar from "./Avatar";
 
 import { Message } from "@/types/chat";
+
+import Progress from "./Progress";
 
 interface MessageBubbleProps {
   message: Message;
@@ -12,44 +13,69 @@ export default function MessageBubble({
   message,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
-  const isStreaming = message.status === "streaming";
-  const isTyping = isStreaming && message.content === "";
 
   return (
     <div
-      className={`flex items-end gap-2 ${
-        isUser ? "justify-end" : "justify-start"
-      }`}
+      className={`message ${isUser ? "message-user" : "message-bot"}`}
     >
-      {!isUser && (
-        <div
-          className={`h-8 w-8 shrink-0 rounded-full ${
-            isStreaming ? "chat-avatar-glow" : ""
-          }`}
-        >
-          <Avatar size={32} />
-        </div>
-      )}
-
+      {/* Parts (EMBED.md): every message is a `bubble`, and a
+          `user-bubble` or a `bot-bubble` too, so a host can style them
+          together or apart — raise the questions, set the replies as plain
+          text — with CSS of its own. */}
       <div
-        className={`max-w-[85%] rounded-[18px] px-4 py-3 text-[15px] leading-relaxed sm:max-w-[80%] ${
-          isUser
-            ? "chat-bubble-user rounded-br-md"
-            : "chat-bubble-assistant rounded-bl-md"
-        }`}
+        className="message-bubble chat-message"
+        part={`bubble ${isUser ? "user-bubble" : "bot-bubble"}`}
       >
-        {isTyping ? (
-          <div className="flex items-center gap-1 py-1">
-            <span className="chat-typing-dot h-1.5 w-1.5 rounded-full bg-slate-400" />
-            <span className="chat-typing-dot h-1.5 w-1.5 rounded-full bg-slate-400" />
-            <span className="chat-typing-dot h-1.5 w-1.5 rounded-full bg-slate-400" />
-          </div>
-        ) : (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {message.content}
-          </ReactMarkdown>
-        )}
+        <BubbleContent message={message} />
       </div>
     </div>
+  );
+}
+
+/**
+ * What the bubble holds: the step a reply is waiting on, the typing dots
+ * when there is no step to name, or the text once the first word arrives.
+ */
+function BubbleContent({ message }: MessageBubbleProps) {
+  const isTyping =
+    message.status === "streaming" && message.content === "";
+
+  if (isTyping && message.progress) {
+    return <Progress progress={message.progress} />;
+  }
+
+  if (isTyping) {
+    return (
+      <div
+        className="typing-dots"
+        aria-label="Generating a reply"
+      >
+        <span className="chat-typing-dot" />
+        <span className="chat-typing-dot" />
+        <span className="chat-typing-dot" />
+      </div>
+    );
+  }
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        // An answer citing a repository or a profile should open beside
+        // the chat, not replace it. Navigating away drops the access
+        // token, which is held in memory on purpose.
+        a: ({ children, ...props }) => (
+          <a
+            {...props}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {children}
+          </a>
+        ),
+      }}
+    >
+      {message.content}
+    </ReactMarkdown>
   );
 }
