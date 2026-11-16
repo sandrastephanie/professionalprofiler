@@ -24,7 +24,7 @@
  * behind the chat, the footer — and exist only here.
  *
  * Fonts: a family has to be loaded before it can be named. `layout.tsx` loads
- * Nunito (`--font-nunito`) and Bebas Neue (`--font-bebas`); add a `localFont`
+ * DM Sans (`--font-dm-sans`) and Bebas Neue (`--font-bebas`); add a `localFont`
  * or a `next/font/google` import there for anything else.
  */
 
@@ -116,7 +116,7 @@
   --site-link-hover: var(--chat-accent);
 
   /* ---- Fonts ------------------------------------------------------------ */
-  --chat-font: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --chat-font: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   /* 300 was too thin to read comfortably on the navy. */
   --chat-font-weight: 400;
 

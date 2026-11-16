@@ -153,7 +153,12 @@ export const COMPOSER_PLACEHOLDER = "Ask a question…";
  * as a space.
  */
 export function hello(name: string, owner: string): string {
-  return `Hi ${name}! 👋\n\nWhat would you like to know about ${owner}?`;
+  return (
+    `Hi ${name}! 👋\n\nWhat would you like to know about ${owner}?\n\n` +
+    // A nudge for someone who does not know where to start. Sandra's own
+    // starter questions, from her first version of this page.
+    'Not sure where to start? Try "what do you do at Likvido?" or "when are you available?"'
+  );
 }
 
 /**

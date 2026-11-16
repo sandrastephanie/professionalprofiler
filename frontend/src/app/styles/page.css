@@ -36,6 +36,20 @@
     object-fit: cover;
     background: var(--site-photo-bg);
   }
+  /* The owner's name and role: the bar's second row, whatever the width. */
+  .site-owner {
+    display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    gap: 0 0.5rem;
+    margin: 0;
+    color: var(--chat-text-muted);
+    font-size: 0.875rem;
+  }
+  .site-owner strong {
+    color: var(--chat-text);
+    font-weight: 600;
+  }
   .site-bar .usage-badge {
     flex-shrink: 0;
     margin-inline-start: auto;

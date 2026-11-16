@@ -1,29 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import { connection } from "next/server";
-import { Bebas_Neue } from "next/font/google";
-import localFont from "next/font/local";
+import { Bebas_Neue, DM_Sans } from "next/font/google";
 
 import { readOwner } from "@/lib/owner";
 import "./globals.css";
 // After globals.css, so this site's look overrides the plain defaults.
 import "./theme.css";
 
-// Variable fonts: one file per style covers every weight in the range, so
-// `globals.css` can ask for any weight without a new file being added here.
-const nunito = localFont({
-  variable: "--font-nunito",
-  src: [
-    {
-      path: "./fonts/nunito/Nunito-Variable.woff2",
-      weight: "200 900",
-      style: "normal",
-    },
-    {
-      path: "./fonts/nunito/Nunito-VariableItalic.woff2",
-      weight: "200 900",
-      style: "italic",
-    },
-  ],
+// The chat's face in this fork: DM Sans, as Sandra's first version had. A
+// variable font, so no weights are listed and `globals.css` can ask for any.
+// Michael's original loads Nunito from `fonts/nunito/`; the files are still
+// there, unused, so going back is this block and one line in theme.css.
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
 });
 
 // A single weight, and capitals only — there is no bold to ask for (see
@@ -42,8 +32,8 @@ const bebas = Bebas_Neue({
  * Next's default meta tag is fine for width and scale, but says nothing about
  * the two things this page needs on a phone. `colorScheme` tells the browser to
  * paint its own surfaces — the canvas behind the document, the overscroll area,
- * the scrollbars — dark; without it they are white, which is what showed under
- * the chat. `interactiveWidget` asks for the on-screen keyboard to shorten the
+ * the scrollbars — to match the page. Michael's navy original says dark; this
+ * fork's theme.css is a light page, so it says light. `interactiveWidget` asks for the on-screen keyboard to shorten the
  * layout viewport, so the `dvh` the layout is built on keeps meaning what the
  * layout assumes it means while someone is typing.
  *
@@ -53,10 +43,10 @@ const bebas = Bebas_Neue({
  * which fixes the same thing and costs nobody anything.
  */
 export const viewport: Viewport = {
-  colorScheme: "dark",
+  colorScheme: "light",
 
-  // theme.css's --chat-bg, so the browser chrome is the page's navy rather
-  // than a shade off it. Hardcoded because a meta tag cannot read a custom
+  // theme.css's --chat-bg, so the browser chrome is the page's own colour
+  // rather than a shade off it. Hardcoded because a meta tag cannot read a custom
   // property — if that `--chat-bg` moves, this has to move with it.
   themeColor: "#f4f5f7",
 
@@ -80,9 +70,42 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const owner = readOwner();
 
+  const title = `Workchat with ${owner.name}`;
+  // Sandra's own line, in her voice: this is what a link preview says under
+  // the title when the page is shared.
+  const description =
+    "Ask me about my work. Product manager, fintech & B2B SaaS.";
+
+  // A preview image has to be an absolute URL, and only the server knows the
+  // site's address (SITE_URL, set from SITE_DOMAIN in docker-compose.prod.yaml).
+  // Unset, as in development and the tests, the preview goes without its image
+  // base rather than pointing at a guess.
+  const siteUrl = process.env.SITE_URL;
+
   return {
-    title: `Workchat with ${owner.name}`,
-    description: `Ask ${owner.name}'s CV a question and get an answer from it, with the record it came from.`,
+    title,
+    description,
+    metadataBase: siteUrl ? new URL(siteUrl) : undefined,
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      // 400 x 400, so a small square preview rather than a wide banner.
+      images: [
+        {
+          url: "/sandra.jpg",
+          width: 400,
+          height: 400,
+          alt: "Sandra Stephanie Raveendran",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+      images: ["/sandra.jpg"],
+    },
   };
 }
 
@@ -94,7 +117,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${nunito.variable} ${bebas.variable}`}
+      className={`${dmSans.variable} ${bebas.variable}`}
     >
       <body>{children}</body>
     </html>

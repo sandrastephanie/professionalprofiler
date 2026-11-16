@@ -54,6 +54,13 @@ export default function StandaloneChat({
         {usage && (
           <UsageBadge usage={usage} />
         )}
+        {/* Who this is, on a line of its own under the title. Written out
+            rather than taken from `owner`, whose name is the short one the
+            chat uses in sentences. */}
+        <p className="site-owner chat-ui">
+          <strong>Sandra Stephanie Raveendran</strong>
+          <span>product manager · fintech &amp; B2B SaaS</span>
+        </p>
       </header>
 
       <div className="site-chat shell-sides-bleed">

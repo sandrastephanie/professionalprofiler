@@ -119,6 +119,8 @@ services:
       OWNER_GITHUB_URL: ${OWNER_GITHUB_URL-https://github.com/sandrastephanie}
       OWNER_LINKEDIN_URL: ${OWNER_LINKEDIN_URL-https://www.linkedin.com/in/sandra-stephanie-raveendran/}
       OWNER_WEBSITE_URL: ${OWNER_WEBSITE_URL-}
+      # The site's own address, for the link preview's image (layout.tsx).
+      SITE_URL: https://${SITE_DOMAIN:?SITE_DOMAIN must be set}
     expose:
       - "3000"
     depends_on:
