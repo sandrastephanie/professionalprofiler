@@ -1,23 +1,26 @@
 ---
 title: Product Manager @ Likvido (Visma)
 type: experience
-tags: [product-manager, product-management, fintech, debt-collection, b2b-saas, workflow-automation, ux, copywriting, notifications, payment-providers, api-partners, vendor-management, claude-code, ai, github, prototyping]
-dates: "April 2026 - present"
-summary: First dedicated Product Manager on Likvido's debt collection portal (about 80% of revenue) - moved manual, time-based processes to trigger-based product flows, cut operational costs and renegotiated payment provider and API partner deals.
+tags: [product-management, fintech, debt-collection, accounts-receivable, regulated-domain, automation, workflow-design, activation, ux, copywriting, vendor-management, payment-providers, api-partners, claude-code, ai-tools, prototyping, engineering-collaboration, b2b-saas]
+dates: "April 2026 - present (available from 1 December 2026)"
+summary: First dedicated PM on Likvido's debt collection portal (~80% of revenue) - replaced time-based workflows with trigger-based flows, cut operational costs, renegotiated payment provider and API partner deals, and redesigned a customer portal herself with Claude Code.
 ---
 
-## Role
-Product Manager, Likvido (part of Visma)
-**April 2026 - present**
+## the role
+i joined Likvido (part of Visma) as the first dedicated product manager on the debt collection portal - the product that generates around 80% of Likvido's revenue. i also own the enforcement court products and the accounting logic underneath. it's one of the more complex and highly regulated corners of danish fintech: interest calculations, legal processes, compliance, payment providers and API partners.
 
-I joined as the first dedicated Product Manager to the debt collection portal - 80% of Likvido's current revenue is generated here. My focus is on turning manual, time-based processes into more scalable, user-driven product flows and reducing friction points for customers.
+day to day, i scope and document product problems, prioritise and prepare work with engineering, and translate an intricate legal-financial domain into clear, buildable product decisions.
 
-## What I did
-- Reduced operational costs by analysing communication channels and removing unnecessary manual touchpoints.
-- Replaced time-based workflows with trigger-based flows across the product.
-- Renegotiated supplier deals with payment providers and API partners to ensure customer satisfaction and broader product capabilities.
-- Increased activation of tasks and to-dos through improvements to UI, copy and email notifications.
-- Became the first PM to make pull requests myself, and redesigned a customer portal using Claude Code.
+## what i did
+- **replaced time-based workflows with trigger-based flows** across the product, so things happen when the customer's situation changes rather than on a fixed schedule
+- **reduced operational costs** by analysing our communication channels and removing manual touchpoints that didn't need to exist
+- **renegotiated supplier deals** with payment providers and API partners, both for customer satisfaction and to widen what the product can do
+- **started the migration from Stripe** to a new payment provider
+- **increased activation of tasks and to-dos** through changes to the UI, the copy and the email notifications
+- **became the first PM at Likvido to make PRs myself** and redesigned a customer portal almost entirely on my own using Claude Code
 
-## Status
-Released from 1 October 2026 because Likvido is merging with another Visma company. The merger is the reason for leaving - nothing personal. I'm under contract until December 2026 and available for a new role from 1 December.
+## how i worked
+coming from marketing and commercial roles, i always asked whether something should be built, not just whether it could ship. i used AI tooling (Claude Code especially) to prototype and unblock delivery, which let me learn the domain fast and contribute changes directly to the product instead of only writing tickets.
+
+## why i'm leaving
+Likvido is merging with another Visma company, and my role was made redundant as part of that. it's the merger, nothing else. i'm under contract until december 2026 and available for a new role from 1 december 2026.

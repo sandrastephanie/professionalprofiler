@@ -1,21 +1,25 @@
 ---
 title: Role Fit
 type: profile
-tags: [product-manager, product-owner, product-marketing, marketing-manager, head-of-marketing, fintech, b2b-saas, seniority]
-summary: How my background maps to product manager, product owner and product marketing roles, with the evidence for each.
+tags: [product-manager, product-owner, product-marketing, go-to-market, commercial-lead, ux, system-owner, role-fit]
+summary: How Sandra's background maps to common job titles - Product Manager, Product Owner, Product Marketing / GTM, commercial development, and UX - with honest notes on where the depth is.
 ---
 
-## Product Manager / Product Owner
-My current role. At Likvido I'm the first dedicated Product Manager on the debt collection portal, which generates about 80% of revenue (see "Product Manager @ Likvido (Visma)"). I've moved time-based workflows to trigger-based flows, cut manual touchpoints, renegotiated payment provider and API partner deals, and improved activation through UI, copy and notifications. I make pull requests myself and redesigned a customer portal with Claude Code. My MSc in IT Product Design (see "Education") is my UX and user research foundation.
+## Product Manager
+the most direct fit and where i am now. at Likvido (Visma) i was the first dedicated PM on a portal driving ~80% of revenue, in a heavily regulated fintech domain (see "Product Manager @ Likvido"). my marketing years give me something many PMs build later: a feel for positioning, pricing and what customers actually respond to.
 
-## Product Marketing / Go-to-market
-At iEDI I led product marketing, positioning and go-to-market for an EDI-as-a-Service platform (see "Head of Marketing @ iEDI"). At Corpay One I aligned marketing and product and built the marketing-to-sales handover (see "Marketing Manager @ Corpay One").
+## Product Owner
+a strong fit. i scope and document problems, prioritise and prepare work with engineering, and i'm comfortable in the details of a backlog item. i'm hands-on enough to prototype and make PRs myself (see "Building with Claude Code").
 
-## Marketing Manager / Growth
-Roles since 2021 across SEO, analytics, CRO, demand generation and marketing automation, with measured results - for example doubling website navigation conversion at Corpay One and building GA4 tracking and dashboards across 25+ industries at Nordiske Medier.
+## Product Marketing / Go-to-Market
+proven. i led product marketing, positioning and GTM at iEDI and ran marketing at Corpay One, with numbers to show for it: conversion doubled from 3.38% to 6.32%, leads +5%, cost per lead -6%, partner wallet share 53% to 60% (see "Marketing Manager @ Corpay One").
 
-## Domain
-Danish fintech and B2B SaaS: debt collection, payments, EDI and supply-chain documents, and banking clients from agency work.
+## Commercial / Business Development
+a good fit where product and commercial meet. i've renegotiated supplier deals with payment providers and API partners, built partner and referral schemes, and aligned marketing with sales around a clear handover.
 
-## Seniority
-Product management since April 2026, after six years in UX, marketing and growth roles, including leading marketing at iEDI. I'm an experienced commercial and UX profile who is newer in the product manager title.
+## UX / Service Design
+my education (MSc in IT Product Design) and a habit i've kept through every role: research with real users, CRO, user journeys, and turning insight into concrete product changes.
+
+## honest notes
+- my product title is recent (since April 2026), but i've worked on product questions for years from the marketing side, and in fintech since 2023.
+- i'm not an engineer, but i'm technical enough to work on APIs, integrations and data flows with engineers, and to build things myself with AI tools.
