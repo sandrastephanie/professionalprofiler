@@ -11,9 +11,10 @@ import type { Owner } from "./owner";
  * rather than an undefined name in the header.
  */
 export const DEFAULT_OWNER: Owner = {
-  name: "Michael",
-  githubUrl: "https://github.com/buzzgreyday",
+  name: "Sandra",
+  githubUrl: "https://github.com/sandrastephanie",
   linkedinUrl:
-    "https://linkedin.com/in/michael-ringdal",
-  websiteUrl: "https://mringdal.com",
+    "https://www.linkedin.com/in/sandra-stephanie-raveendran/",
+  // Empty means "no such link", not "use a default".
+  websiteUrl: "",
 };

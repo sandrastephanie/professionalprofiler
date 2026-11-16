@@ -82,10 +82,10 @@ services:
       # `${VAR-default}`, not `${VAR:-default}`: the colon form also substitutes
       # when the variable is set but empty, which would make "I have no LinkedIn"
       # render the author's.
-      OWNER_NAME: ${OWNER_NAME-Michael}
-      OWNER_GITHUB_URL: ${OWNER_GITHUB_URL-https://github.com/buzzgreyday}
-      OWNER_LINKEDIN_URL: ${OWNER_LINKEDIN_URL-https://linkedin.com/in/michael-ringdal}
-      OWNER_WEBSITE_URL: ${OWNER_WEBSITE_URL-https://mringdal.com}
+      OWNER_NAME: ${OWNER_NAME-Sandra}
+      OWNER_GITHUB_URL: ${OWNER_GITHUB_URL-https://github.com/sandrastephanie}
+      OWNER_LINKEDIN_URL: ${OWNER_LINKEDIN_URL-https://www.linkedin.com/in/sandra-stephanie-raveendran/}
+      OWNER_WEBSITE_URL: ${OWNER_WEBSITE_URL-}
     depends_on:
       - backend
     volumes:

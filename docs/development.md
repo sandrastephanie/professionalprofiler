@@ -46,10 +46,11 @@ feat|fix|chore/*  ──PR──>  development  ──PR──>  main
 | `development` | Integration. Everything lands here first and is judged here. | Full CI |
 | `feat/*`, `fix/*`, `chore/*` | Anything in progress — a feature, a fix, a release or a spike. | Backend, frontend and the secret scan on each push |
 
-**`main` accepts merges from `development` and nothing else.** Branch protection
-can require a pull request and a green build, but it cannot say where the pull
-request came from, so the `Branch policy` job in CI fails any PR into `main`
-whose head is not `development`.
+**This fork skips the middle tier.** Michael's original fails any PR into
+`main` whose head is not `development`, with a `Branch policy` job in CI. That
+job is removed here: one person works on this copy, there is no `development`
+branch, and a work branch goes into `main` by pull request directly. The PR
+still runs the full CI.
 
 ### Why work branches get less
 

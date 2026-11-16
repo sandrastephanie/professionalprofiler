@@ -2,136 +2,94 @@
 title: Skills
 type: skills
 tags: []
-summary: Technical skills derived from experience and projects, plus spoken languages and interests.
+summary: Expertise areas, tools by category, spoken languages and areas of interest. The tag list below is generated from experience and projects.
 ---
+
+## Expertise
+UX analysis and design · marketing and sales automation · event planning and execution · content planning and execution · PR and communication · B2B branding and positioning · conversion and funnel metrics
+
+## Tools
+- **Web & UX:** Webflow, Umbraco, WordPress, Wix, Squarespace, Hotjar, Google Tag Manager, Unbounce, Figma, GitHub
+- **Marketing:** HubSpot, Mailchimp, Meta Business Manager, Google Business, LinkedIn Campaign Manager, Microsoft Ads
+- **Data & Analytics:** Universal Analytics/GA4, Google Search Console, Google Data Studio, Google Ads, Ahrefs, AccuRanker, Dreamdata, Fibbler, Excel
+- **Graphic Design:** Photoshop, InDesign, Illustrator, Premiere Pro, Canva, Fresco, Lightroom
+- **Project Management & AI:** Asana, Miro, Mural, Pomodoro, TimeLog, Claude Code, ChatGPT, Cursor
+- **CRM & Sales:** HubSpot, Leadfeeder, Vainu
+
+## Spoken languages
+English, Danish and Swedish. Simple, entry-level Tamil, Italian and French.
+
+## Areas of interest
+Fintech, SaaS, AI, women in tech, women in STEM, female finance, product management in tech.
 
 <!-- AUTO-GENERATED-SKILLS-START: do not hand-edit below this line, run `python -m app.build_skills` (from backend/) instead -->
 
 ## Technical Skills
 
-- **backend** — .NET API, AI CV Chat Application, Freelance Software Developer @ Constellation Network, Software Developer @ iEDI, Tracing and Distributed Logging
-- **software-engineer** — AI CV Chat Application, Freelance Software Developer @ Constellation Network, Personal Website (mringdal.com), Software Developer @ iEDI, Tracing and Distributed Logging
-- **python** — AI CV Chat Application, Freelance Software Developer @ Constellation Network, Software Developer @ iEDI, Tracing and Distributed Logging
-- **software-developer** — Blockchain Wallet Modification, Freelance Software Developer @ Constellation Network, Personal Website (mringdal.com), Software Developer @ iEDI
-- **api-development** — .NET API, Freelance Software Developer @ Constellation Network, Software Developer @ iEDI
-- **backend-developer** — Freelance Software Developer @ Constellation Network, Software Developer @ iEDI
-- **docker** — AI CV Chat Application, Personal Website (mringdal.com), Software Developer @ iEDI, Tracing and Distributed Logging
-- **github** — Blockchain Wallet Modification, Custom iPodLinux Bootloader, Software Developer @ iEDI, Tracing and Distributed Logging
-- **ci-cd** — AI CV Chat Application, Personal Website (mringdal.com), Software Developer @ iEDI
-- **github-actions** — AI CV Chat Application, Personal Website (mringdal.com), Software Developer @ iEDI
-- **rest-api** — .NET API, AI CV Chat Application, Software Developer @ iEDI
-- **blockchain** — Blockchain Wallet Modification, Freelance Software Developer @ Constellation Network
-- **fastapi** — AI CV Chat Application, Software Developer @ iEDI
-- **javascript** — Blockchain Wallet Modification, Software Developer @ iEDI
-  - Scope: A small part of the work at iEDI; his professional focus there is backend Python.
-- **testing** — AI CV Chat Application, Software Developer @ iEDI
-- **architecture** — Software Developer @ iEDI
-- **backend-engineer** — Software Developer @ iEDI
-- **code-review** — Software Developer @ iEDI
-- **cron** — Software Developer @ iEDI
-- **cryptography** — Freelance Software Developer @ Constellation Network
-- **databases** — Software Developer @ iEDI
-- **distributed-systems** — Software Developer @ iEDI
-  - Scope: Many RESTful APIs deployed in Kubernetes and now migrating to Nomad, around a monolithic central engine. Some of those services use RabbitMQ; it is not the backbone of the estate.
-- **e-invoicing** — Software Developer @ iEDI
-- **encryption** — Freelance Software Developer @ Constellation Network
-- **erp** — Software Developer @ iEDI
-- **freelance** — Freelance Software Developer @ Constellation Network
-- **integrations** — Software Developer @ iEDI
-- **kubernetes** — Software Developer @ iEDI
-  - Scope: Created and managed services, ingress, and deployments through Rancher; did not author raw manifests/Helm charts or design cluster architecture from scratch.
-- **legacy-code** — Software Developer @ iEDI
-- **lxml** — Software Developer @ iEDI
-- **message-queues** — Software Developer @ iEDI
-- **mongodb** — Software Developer @ iEDI
-- **monolith** — Software Developer @ iEDI
-  - Scope: iEDI's main engine is a monolith, surrounded by customer-tailored REST APIs the team is working to consolidate.
-- **nomad** — Software Developer @ iEDI
-- **nosql** — Software Developer @ iEDI
-- **pandas** — Software Developer @ iEDI
-- **pika** — Software Developer @ iEDI
-- **production-support** — Software Developer @ iEDI
-- **pydantic** — Software Developer @ iEDI
-- **pyramid** — Software Developer @ iEDI
-- **rabbitmq** — Software Developer @ iEDI
-- **rancher** — Software Developer @ iEDI
-  - Scope: The cluster management UI through which he works with Kubernetes at iEDI.
-- **refactoring** — Software Developer @ iEDI
-- **remote** — Freelance Software Developer @ Constellation Network
-- **sdk** — Freelance Software Developer @ Constellation Network
-- **service-integration** — Software Developer @ iEDI
-- **solution-ownership** — Software Developer @ iEDI
-- **sql** — Software Developer @ iEDI
-- **system-design** — Software Developer @ iEDI
-- **technical-debt** — Software Developer @ iEDI
-- **troubleshooting** — Software Developer @ iEDI
-- **typescript** — AI CV Chat Application, Blockchain Wallet Modification, Personal Website (mringdal.com)
-- **xml** — Software Developer @ iEDI
-- **api-contracts** — AI CV Chat Application, Personal Website (mringdal.com)
-- **frontend** — AI CV Chat Application, Personal Website (mringdal.com)
-- **full-stack** — AI CV Chat Application, Personal Website (mringdal.com)
-- **nextjs** — AI CV Chat Application, Personal Website (mringdal.com)
-- **react** — AI CV Chat Application, Personal Website (mringdal.com)
-- **software-architecture** — AI CV Chat Application, Personal Website (mringdal.com)
-- **web-components** — AI CV Chat Application, Personal Website (mringdal.com)
-- **.NET** — .NET API
-- **accessibility** — Personal Website (mringdal.com)
-- **alembic** — AI CV Chat Application
-- **async** — AI CV Chat Application
-- **authentication** — AI CV Chat Application
-- **bash** — AI CV Chat Application
-- **bootloader** — Custom iPodLinux Bootloader
-- **C#** — .NET API
-- **c++** — Custom iPodLinux Bootloader
-  - Scope: I haven't used C++ since c. 2005; thus, I don't remember any C++.
-- **caching** — AI CV Chat Application
-- **caddy** — Personal Website (mringdal.com)
-- **concurrency** — AI CV Chat Application
-- **constellation-network** — Blockchain Wallet Modification
-- **crypto** — Blockchain Wallet Modification
-- **csharp** — .NET API
-- **css** — Personal Website (mringdal.com)
-- **dotnet** — .NET API
-- **e2e-testing** — Personal Website (mringdal.com)
-- **evals** — AI CV Chat Application
-- **full-stack-developer** — AI CV Chat Application
-- **grafana** — Tracing and Distributed Logging
-- **hardware-wallet** — Blockchain Wallet Modification
-- **hobby-programming** — Custom iPodLinux Bootloader
-- **idempotency** — AI CV Chat Application
-- **jwt** — AI CV Chat Application
-- **linux** — Custom iPodLinux Bootloader
-- **llm** — AI CV Chat Application
-- **loki** — Tracing and Distributed Logging
-- **mdx** — Personal Website (mringdal.com)
-- **monitoring** — Tracing and Distributed Logging
-- **mypy** — AI CV Chat Application
-- **observability** — Tracing and Distributed Logging
-- **openai** — AI CV Chat Application
-- **opentelemetry** — Tracing and Distributed Logging
-- **performance** — Personal Website (mringdal.com)
-- **playwright** — Personal Website (mringdal.com)
-- **postgresql** — AI CV Chat Application
-- **privacy** — AI CV Chat Application
-- **security** — AI CV Chat Application
-- **self-taught** — Custom iPodLinux Bootloader
-- **server-sent-events** — AI CV Chat Application
-- **shell-scripting** — AI CV Chat Application
-- **sqlalchemy** — AI CV Chat Application
-- **sse** — AI CV Chat Application
-- **streaming** — AI CV Chat Application
-- **systems-programming** — Custom iPodLinux Bootloader
-- **tailwind** — AI CV Chat Application
-- **tempo** — Tracing and Distributed Logging
-- **tool-calling** — AI CV Chat Application
-- **transactions** — AI CV Chat Application
-- **web-api** — .NET API
-- **web3** — Blockchain Wallet Modification
+- **copywriting** — Early roles (Kopenhagen Fur, Arket), Product Manager @ Likvido (Visma), SEO Copywriter @ IIH Nordic
+- **cro** — Digital Acquisition Specialist @ Nordiske Medier, Marketing Manager @ Corpay One, SEO Copywriter @ IIH Nordic
+- **fintech** — Marketing Manager @ Corpay One, Product Manager @ Likvido (Visma), SEO Copywriter @ IIH Nordic
+- **b2b** — Digital Acquisition Specialist @ Nordiske Medier, SEO Copywriter @ IIH Nordic
+- **b2b-saas** — Head of Marketing @ iEDI, Product Manager @ Likvido (Visma)
+- **brand** — Head of Marketing @ iEDI, Marketing Manager @ Corpay One
+- **content-planning** — Digital Acquisition Specialist @ Nordiske Medier, SEO Copywriter @ IIH Nordic
+- **data-analytics** — Digital Acquisition Specialist @ Nordiske Medier, Marketing Manager @ Corpay One
+- **events** — Early roles (Kopenhagen Fur, Arket), Marketing Manager @ Corpay One
+- **lead-generation** — Digital Acquisition Specialist @ Nordiske Medier, Marketing Manager @ Corpay One
+- **partner-marketing** — Head of Marketing @ iEDI, Marketing Manager @ Corpay One
+- **pr** — Early roles (Kopenhagen Fur, Arket), Marketing Manager @ Corpay One
+- **seo** — Digital Acquisition Specialist @ Nordiske Medier, SEO Copywriter @ IIH Nordic
+- **webinars** — Head of Marketing @ iEDI, Marketing Manager @ Corpay One
+- **affiliate-marketing** — Marketing Manager @ Corpay One
+- **agency-management** — Marketing Manager @ Corpay One
+- **ai** — Product Manager @ Likvido (Visma)
+- **analytics** — Early roles (Kopenhagen Fur, Arket)
+- **api-partners** — Product Manager @ Likvido (Visma)
+- **banking** — SEO Copywriter @ IIH Nordic
+- **claude-code** — Product Manager @ Likvido (Visma)
+- **client-communication** — SEO Copywriter @ IIH Nordic
+- **crm** — Head of Marketing @ iEDI
+- **customer-service** — Early roles (Kopenhagen Fur, Arket)
+- **debt-collection** — Product Manager @ Likvido (Visma)
+- **demand-generation** — Marketing Manager @ Corpay One
+- **digital-acquisition** — Digital Acquisition Specialist @ Nordiske Medier
+- **edi** — Head of Marketing @ iEDI
+- **email-automation** — Head of Marketing @ iEDI
+- **ga4** — Digital Acquisition Specialist @ Nordiske Medier
+- **github** — Product Manager @ Likvido (Visma)
+- **go-to-market** — Head of Marketing @ iEDI
+- **google-analytics** — Digital Acquisition Specialist @ Nordiske Medier
+- **graphic-design** — Early roles (Kopenhagen Fur, Arket)
+- **head-of-marketing** — Head of Marketing @ iEDI
+- **hubspot** — Marketing Manager @ Corpay One
+- **looker-studio** — Digital Acquisition Specialist @ Nordiske Medier
+- **marketing** — Early roles (Kopenhagen Fur, Arket)
+- **marketing-automation** — Marketing Manager @ Corpay One
+- **marketing-manager** — Marketing Manager @ Corpay One
+- **notifications** — Product Manager @ Likvido (Visma)
+- **paid-media** — Digital Acquisition Specialist @ Nordiske Medier
+- **payment-providers** — Product Manager @ Likvido (Visma)
+- **positioning** — Head of Marketing @ iEDI
+- **product-management** — Product Manager @ Likvido (Visma)
+- **product-manager** — Product Manager @ Likvido (Visma)
+- **product-marketing** — Head of Marketing @ iEDI
+- **prototyping** — Product Manager @ Likvido (Visma)
+- **referral-programme** — Head of Marketing @ iEDI
+- **retail** — Early roles (Kopenhagen Fur, Arket)
+- **retargeting** — Digital Acquisition Specialist @ Nordiske Medier
+- **retention** — Head of Marketing @ iEDI
+- **saas** — SEO Copywriter @ IIH Nordic
+- **sales** — Early roles (Kopenhagen Fur, Arket)
+- **sales-alignment** — Marketing Manager @ Corpay One
+- **social-media** — Early roles (Kopenhagen Fur, Arket)
+- **supply-chain** — Head of Marketing @ iEDI
+- **technical-seo** — Digital Acquisition Specialist @ Nordiske Medier
+- **tracking** — Digital Acquisition Specialist @ Nordiske Medier
+- **ux** — Product Manager @ Likvido (Visma)
+- **vendor-management** — Product Manager @ Likvido (Visma)
+- **website** — Marketing Manager @ Corpay One
+- **websites** — Head of Marketing @ iEDI
+- **whitepapers** — SEO Copywriter @ IIH Nordic
+- **workflow-automation** — Product Manager @ Likvido (Visma)
 
 <!-- AUTO-GENERATED-SKILLS-END -->
-
-## Spoken languages
-Danish (native), English (fluent), French (basic)
-
-## Areas of interest
-Object-oriented programming, backend development, epistemology, political philosophy and history of philosophy, turn-based story-driven video games, art

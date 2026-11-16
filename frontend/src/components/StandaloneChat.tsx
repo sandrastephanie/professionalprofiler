@@ -38,6 +38,16 @@ export default function StandaloneChat({
   return (
     <>
       <header className="site-bar shell-top shell-sides">
+        {/* Sandra's photo. A plain img: one small file from public/, and
+            next/image would add a loader for nothing. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className="site-photo"
+          src="/sandra.jpg"
+          alt="Sandra Stephanie Raveendran"
+          width={40}
+          height={40}
+        />
         <h1 className="chat-title site-title">
           <RollingTitle text="Workchat" />
         </h1>

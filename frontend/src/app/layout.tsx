@@ -58,7 +58,7 @@ export const viewport: Viewport = {
   // theme.css's --chat-bg, so the browser chrome is the page's navy rather
   // than a shade off it. Hardcoded because a meta tag cannot read a custom
   // property — if that `--chat-bg` moves, this has to move with it.
-  themeColor: "#1b2e42",
+  themeColor: "#f4f5f7",
 
   interactiveWidget: "resizes-content",
 

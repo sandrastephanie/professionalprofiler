@@ -1,5 +1,7 @@
 /*
- * chat.mringdal.com's own look — every setting, in one place.
+ * Sandra's look for the standalone page: light, clean, pink accent. Every
+ * setting, in one place. The structure and the comments on each part are
+ * Michael's (chat.mringdal.com); the colours are hers.
  *
  * docs/design.md describes this scheme for other projects (the mringdal.com
  * website first), in plain hex. Change a colour here, update it there.
@@ -27,42 +29,49 @@
  */
 
 :root {
+  /* A light page, so the browser's own surfaces (scrollbars, form controls)
+     are drawn light too. globals.css defaults to dark. */
+  color-scheme: light;
+
+  /* The circle behind the photo in the top bar. */
+  --site-photo-bg: #fde2ee;
+
   /* ---- Palette ---------------------------------------------------------- */
   /* mringdal.com's own palette, to the hex (its app/styles/tokens.css), so the chat
      looks the same on its own page as it does in the window on that site:
      navy everywhere, the bars included — no steel-blue frame — with the gold
      and the coral as the only colours on it. */
-  --chat-bg: #1b2e42;
-  --chat-panel: #1b2e42;
+  --chat-bg: #f4f5f7;
+  --chat-panel: #ffffff;
   /* Navy lifted, so replies, the input and the questions-left pill read as
      raised above it. */
-  --chat-panel-alt: #2b3d4f;
-  --chat-border: oklch(1 0 0 / 10%);
-  --chat-text: #eae0cf;
+  --chat-panel-alt: #fafbfc;
+  --chat-border: #e6e8ee;
+  --chat-text: #1d2130;
   /* Sage: a grey tinted green, at the old grey's lightness. The tint pulls it
      off the navy enough to pass 4.5:1 there; docs/design.md has the numbers. */
-  --chat-text-muted: #809e85;
+  --chat-text-muted: #6a7080;
   /* Only tints your own questions (mixed into the navy) and colours links in
      replies; nothing on the page is painted with it. */
-  --chat-accent: #94b4c1;
+  --chat-accent: #db2777;
   /* The send button's colour, on its own: the title and the pill text have
      a gold of their own, so this can change without moving them. The input's
      focus follows the button. */
-  --chat-action: #e0876a;
+  --chat-action: #1d2130;
 
   /* ---- Parts: the chat -------------------------------------------------- */
   /* The title's pale gold, which stays put whatever the button does. mringdal.com's identity gold. */
-  --chat-title-color: #e0cea1;
+  --chat-title-color: var(--chat-text);
 
   /* Your questions */
   /* The accent at 45% into the panel, so the send button stays the one
      bright thing on screen. Darker than the accent, so it takes the light
      text rather than the text made for the accent. */
-  --chat-user-bubble-bg: color-mix(in oklab, var(--chat-accent) 45%, var(--chat-panel));
-  --chat-user-bubble-text: var(--chat-text);
+  --chat-user-bubble-bg: var(--chat-accent);
+  --chat-user-bubble-text: #ffffff;
 
   /* The replies */
-  --chat-bot-bubble-bg: var(--chat-panel-alt);
+  --chat-bot-bubble-bg: var(--chat-panel);
   --chat-bot-bubble-text: var(--chat-text);
   --chat-bot-bubble-border: var(--chat-border);
   --chat-link: var(--chat-accent);
@@ -70,10 +79,10 @@
   /* The dots while a reply is being written. */
   --chat-typing: var(--chat-text-muted);
   --chat-scrollbar: var(--chat-text-muted);
-  --chat-fade: var(--chat-panel);
+  --chat-fade: var(--site-chat-bg);
 
   /* The input */
-  --chat-input-bg: var(--chat-panel-alt);
+  --chat-input-bg: #f7f8fa;
   --chat-input-text: var(--chat-text);
   --chat-input-placeholder: var(--chat-text-muted);
   --chat-input-border: var(--chat-border);
@@ -86,12 +95,12 @@
   /* The action colour from the palette, so the one thing to press reads
      first. The input's focus follows this. */
   --chat-send-bg: var(--chat-action);
-  --chat-send-icon: #1b2e42;
+  --chat-send-icon: #ffffff;
 
   /* The "questions left" pill */
-  --chat-badge-bg: var(--chat-panel-alt);
+  --chat-badge-bg: #f1f2f5;
   /* With the title: status, not action. */
-  --chat-badge-text: var(--chat-title-color);
+  --chat-badge-text: var(--chat-text-muted);
 
   /* ---- Parts: this page's frame ---------------------------------------- */
   /* The bars as mringdal.com draws its own: the page's navy, and no line
@@ -100,7 +109,7 @@
   --site-bar-bg: var(--chat-bg);
   --site-bar-border: transparent;
   /* The band the chat sits in, edge to edge. */
-  --site-chat-bg: var(--chat-panel);
+  --site-chat-bg: var(--chat-panel-alt);
   --site-footer-bg: var(--chat-bg);
   --site-footer-border: transparent;
   --site-link: var(--chat-text-muted);

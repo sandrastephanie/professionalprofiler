@@ -27,6 +27,15 @@
     background: var(--site-bar-bg);
   }
 
+  /* The owner's photo, a small circle before the title. */
+  .site-photo {
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--site-photo-bg);
+  }
   .site-bar .usage-badge {
     flex-shrink: 0;
     margin-inline-start: auto;

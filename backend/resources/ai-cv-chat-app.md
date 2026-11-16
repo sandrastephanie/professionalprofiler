@@ -1,10 +1,12 @@
 ---
-title: AI CV Chat Application
-type: project
-tags: [python, fastapi, typescript, nextjs, react, postgresql, sqlalchemy, alembic, docker, full-stack, full-stack-developer, backend, frontend, rest-api, jwt, openai, tailwind, tool-calling, llm, software-engineer, security, authentication, sse, server-sent-events, streaming, async, concurrency, bash, shell-scripting, caching, idempotency, software-architecture, api-contracts, web-components, privacy, testing, evals, mypy, ci-cd, github-actions, transactions]
-dates: "2026-"
-summary: "This chat application itself — a full-stack AI-powered CV assistant (FastAPI/PostgreSQL backend, Next.js/TypeScript frontend, Dockerized) that lets hiring managers query Michael's CV through a tool-calling LLM agent instead of a static resume. BUILT BY MICHAEL: his own project, not a third-party product - the tool the hirer is using is itself one of his work samples. LIVE: deployed and serving this conversation."
+title: About this chat (built by Michael Ringdal)
+type: about-this-app
+tags: [about-this-chat, workchat, michael-ringdal, credits, who-built-this, how-it-works]
+summary: "This chat application is Michael Ringdal's build, a project of his called workchat. I use a copy of it with my own CV content and design. The engineering described here is Michael's work, not mine."
 ---
+
+## Who built this
+Michael Ringdal designed and built this application end to end. It is his own project, workchat (github.com/buzzgreyday/workchat), and the original runs on his own site, mringdal.com. I'm using a copy of it and fine-tuning it for my needs: the CV content is mine, and I changed the colours and added my photo. If you ask who made this chat, the answer is Michael. The sections below describe his work.
 
 ## Technologies
 Backend: Python, FastAPI, SQLAlchemy (async), Alembic migrations, PostgreSQL, JWT-based access tokens, OpenAI tool-calling.
@@ -58,7 +60,7 @@ Infrastructure: Docker Compose, Caddy reverse proxy with automatic HTTPS.
   fixed status codes ("thinking", "searching the CV"), which the frontend turns
   into words. What the model searched for never reaches the browser.
 - **Embeddable by contract.** The frontend also ships as a `<workchat-chat>` web
-  component that mringdal.com loads at runtime. Its attributes, event, custom
+  component that Michael's own site, mringdal.com, loads at runtime. Its attributes, event, custom
   state (on while it works, for the host to style), shadow parts and CSS
   variables are a documented public API, and a contract test runs the website's
   own end-to-end suite against the freshly built component to catch drift.
@@ -68,19 +70,3 @@ Infrastructure: Docker Compose, Caddy reverse proxy with automatic HTTPS.
 - **Checked in CI.** Typed Python (mypy), tests, a check that the database
   schema matches its migrations, and a production deploy that waits for
   approval.
-
-For the wider stack this sits in, see "Frameworks and Tools".
-
-## Authorship
-Michael built this application. It is one of his projects, not a third-party
-product, a hosted service, or a template he filled in — he designed and wrote
-it end to end, from the database schema through the frontend to the deployment
-that is serving this conversation. If a hiring manager asks who made this chat
-bot, the answer is Michael, and the thing they are using is itself a work
-sample.
-
-## Status
-Live. This is the application serving this conversation — deployed and publicly reachable.
-
-## Note
-Designed and built end-to-end — backend API, database schema, frontend, and deployment setup — as a self-contained full-stack project, distinct from his day-to-day backend-focused work at iEDI.
