@@ -1,0 +1,59 @@
+name: GitHub activity record
+
+# Rewrites backend/resources/github-activity.md from Sandra's pushes on GitHub,
+# so the chat can say how much she is building. What the record shows and
+# leaves out is decided in scripts/github-activity.py.
+#
+# A schedule only fires from the default branch, so this does nothing until it
+# is on main. `workflow_dispatch` adds a "Run workflow" button on the Actions
+# tab, for running it by hand.
+on:
+  schedule:
+    # Mondays at 06:00 UTC. GitHub may start a scheduled run late when it is
+    # busy; a weekly count does not mind.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+# Never two at once: both would try to push the same file.
+concurrency:
+  group: github-activity
+  cancel-in-progress: false
+
+# The one job here commits a file, so it needs to write to the repository.
+# Every other workflow in this repo is read-only.
+permissions:
+  contents: write
+
+jobs:
+  update:
+    name: Update the record
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ACTIVITY_TOKEN is a token of Sandra's own that can see her private
+      # repositories, so their pushes can be counted (never named). It is
+      # optional: without it the script counts public pushes only and the
+      # record says the private ones were not counted.
+      #
+      # Passed through `env:` and read as a variable, never pasted into the
+      # script text, for the reason deploy.yml gives.
+      - name: Count the pushes and write the record
+        env:
+          GH_TOKEN: ${{ secrets.ACTIVITY_TOKEN }}
+        run: python3 scripts/github-activity.py
+
+      # Commits only when the file changed. A push made with the workflow's own
+      # token does not start other workflows, so this does not run CI or queue
+      # a deploy: the server picks the record up at the next deploy.
+      - name: Commit the record if it changed
+        run: |
+          if git diff --quiet -- backend/resources/github-activity.md; then
+            echo "No change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/resources/github-activity.md
+          git commit -m "chore(resources): the GitHub activity record is this week's"
+          git push

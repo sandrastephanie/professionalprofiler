@@ -20,4 +20,4 @@ I joined as the first dedicated Product Manager to the debt collection portal - 
 - Became the first PM to make pull requests myself, and redesigned a customer portal using Claude Code.
 
 ## Status
-Released from 1 October 2026 because Likvido is merging with another Visma company. The merger is the reason for leaving - nothing personal.
+Released from 1 October 2026 because Likvido is merging with another Visma company. The merger is the reason for leaving - nothing personal. I'm under contract until December 2026 and available for a new role from 1 December.

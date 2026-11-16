@@ -31,6 +31,21 @@ rather than leaving it answering nothing.
 locally with `python -m app.build_skills` (from `backend/`) after editing the
 tags on any record, and commit the result.
 
+### The GitHub activity record
+
+`backend/resources/github-activity.md` is written by a workflow, not by hand:
+`.github/workflows/github-activity.yml` runs `scripts/github-activity.py` every
+Monday and commits the result to `main`. It counts Sandra's pushes over the
+last 30 days. Public repositories are named; private ones are only counted, and
+no repository is described, because this file is public.
+
+Private pushes need a token that can see them, stored as the Actions secret
+`ACTIVITY_TOKEN`. Without it the record counts public pushes and says the
+private ones were not counted. This is the one place a workflow pushes to
+`main` directly: the file is generated, and a weekly pull request for a count
+would be ceremony. That push does not start CI or a deploy, so the chat shows
+the new numbers after the next deploy.
+
 ## Branches
 
 Three tiers, and code moves one way through them:
