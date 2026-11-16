@@ -20,7 +20,7 @@ The numbers come from GitHub's events API, which keeps roughly the last 30
 days and at most 300 events. That is the window this record claims, and no
 more. Without GH_TOKEN, or with a token that cannot see private repositories,
 only public pushes are counted, and the record says so rather than implying
-the private number is zero.
+the private number is zero. `sees_private` is how it knows which case it is in.
 """
 import json
 import os
@@ -66,6 +66,30 @@ def fetch_events():
     return events
 
 
+def sees_private():
+    """Whether the token can see any private repository at all.
+
+    The events API does not say what it left out: a token that cannot see
+    private activity gets the public events and no error. Asked this way, the
+    record can tell "no private pushes" from "could not look", and say which.
+    """
+    if not TOKEN:
+        return False
+    req = urllib.request.Request(
+        "https://api.github.com/user/repos?visibility=private&per_page=1",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "github-activity-record",
+            "Authorization": f"Bearer {TOKEN}",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            return bool(json.load(res))
+    except urllib.error.HTTPError:
+        return False
+
+
 def day(date):
     """`2 November 2026`, without the platform-specific %-d."""
     return f"{date.day} {date.strftime('%B %Y')}"
@@ -100,13 +124,15 @@ def main():
         last_public[name] = max(at, last_public.get(name, at))
     active_days = {at.date() for at, _, _ in pushes}
     repo_count = len(public_by_repo) + len(private_repos)
+    # Seeing a private push is proof enough; otherwise ask.
+    can_see_private = bool(private) or sees_private()
 
     # Log what was seen, names of private repositories excluded: this output is
     # readable by anyone who opens the workflow run.
     print(
         f"{len(pushes)} pushes in {DAYS} days: {len(public)} public in "
         f"{len(public_by_repo)} repos, {len(private)} private in {len(private_repos)} repos. "
-        f"Token: {'yes' if TOKEN else 'no'}."
+        f"Token: {'yes' if TOKEN else 'no'}. Sees private repos: {'yes' if can_see_private else 'no'}."
     )
 
     if pushes:
@@ -148,7 +174,7 @@ def main():
         lines.append(f"- No pushes to public repositories in the last {DAYS} days.")
 
     lines += ["", "## Private repositories"]
-    if not TOKEN:
+    if not can_see_private:
         lines.append("- Not counted in this update. Most of my work is in private repositories.")
     elif private:
         lines.append(
