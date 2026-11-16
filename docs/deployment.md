@@ -2,8 +2,8 @@
 
 The stack is served by Caddy (automatic Let's Encrypt certificates) in front of
 the Next.js frontend and the FastAPI backend. Nothing is tied to a particular
-domain — you set yours in `backend/.env`. The author's instance runs at
-https://chat.mringdal.com; every command below uses your own `SITE_DOMAIN`.
+domain — you set yours in `backend/.env`. Every command below uses your own
+`SITE_DOMAIN`.
 
 ```
 Internet ──▶ Caddy (443/80) ──┬─▶ frontend:3000 (Next.js)
@@ -26,7 +26,7 @@ Every step is required. Skipping the system prompt or the `.env` symlink stops
 the stack from starting at all.
 
 ```bash
-git clone https://github.com/buzzgreyday/workchat.git && cd workchat
+git clone https://github.com/sandrastephanie/professionalprofiler.git && cd professionalprofiler
 ```
 
 - [ ] **1. Secrets.** Generate each with `openssl rand -hex 32`, and add your
