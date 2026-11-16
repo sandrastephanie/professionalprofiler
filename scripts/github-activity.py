@@ -16,11 +16,13 @@ What it says, and what it leaves out, is a decision rather than a default:
 
 Standard library only, so the workflow needs no install step.
 
-The numbers come from GitHub's events API, which keeps roughly the last 30
-days and at most 300 events. That is the window this record claims, and no
-more. Without GH_TOKEN, or with a token that cannot see private repositories,
-only public pushes are counted, and the record says so rather than implying
-the private number is zero. `sees_private` is how it knows which case it is in.
+The numbers come from each repository's activity list, over GitHub's "month"
+window, cut to the last 30 days. Without GH_TOKEN, or with a token that cannot
+read every private repository, the private count is missing or partial, and
+the record says it was not counted rather than implying it is zero.
+
+The token needs to list her repositories and read their activity: a
+fine-grained token with access to all repositories and Contents: read-only.
 """
 import json
 import os
@@ -37,57 +39,64 @@ DAYS = 30
 OUT = Path(__file__).resolve().parent.parent / "backend" / "resources" / "github-activity.md"
 
 
-def fetch_events():
-    """Every event the API still has for USER, newest first."""
-    # Authenticated as the user, this endpoint includes private events; the
-    # /public variant is the honest fallback when there is no token.
-    path = f"/users/{USER}/events" if TOKEN else f"/users/{USER}/events/public"
-    events = []
-    for page in (1, 2, 3):
-        req = urllib.request.Request(
-            f"https://api.github.com{path}?per_page=100&page={page}",
-            headers={
-                "Accept": "application/vnd.github+json",
-                "User-Agent": "github-activity-record",
-                **({"Authorization": f"Bearer {TOKEN}"} if TOKEN else {}),
-            },
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=30) as res:
-                batch = json.load(res)
-        except urllib.error.HTTPError as err:
-            # Pages past the end answer 422 rather than an empty list.
-            if err.code == 422 and page > 1:
-                break
-            raise
-        if not batch:
-            break
-        events.extend(batch)
-    return events
-
-
-def sees_private():
-    """Whether the token can see any private repository at all.
-
-    The events API does not say what it left out: a token that cannot see
-    private activity gets the public events and no error. Asked this way, the
-    record can tell "no private pushes" from "could not look", and say which.
-    """
-    if not TOKEN:
-        return False
+def api(path):
+    """One GET against the GitHub API, as JSON."""
     req = urllib.request.Request(
-        "https://api.github.com/user/repos?visibility=private&per_page=1",
+        f"https://api.github.com{path}",
         headers={
             "Accept": "application/vnd.github+json",
             "User-Agent": "github-activity-record",
-            "Authorization": f"Bearer {TOKEN}",
+            **({"Authorization": f"Bearer {TOKEN}"} if TOKEN else {}),
         },
     )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as res:
-            return bool(json.load(res))
-    except urllib.error.HTTPError:
-        return False
+    with urllib.request.urlopen(req, timeout=30) as res:
+        return json.load(res)
+
+
+def fetch_repos():
+    """Her own repositories: all of them with a token, the public ones without."""
+    path = "/user/repos?affiliation=owner" if TOKEN else f"/users/{USER}/repos?type=owner"
+    repos = []
+    for page in range(1, 6):
+        batch = api(f"{path}&per_page=100&page={page}")
+        repos.extend(batch)
+        if len(batch) < 100:
+            break
+    return repos
+
+
+def fetch_pushes(repos):
+    """Her pushes in the last month, asked of each repository in turn.
+
+    Not the events feed, which was the first attempt: it gives a fine-grained
+    token the public events only, without an error, and the record then said
+    there had been no private pushes. A repository's own activity list is
+    covered by a permission that can be granted and checked (Contents, read).
+
+    A private repository the token may not read is skipped and counted as
+    unreadable, so the record can say the count is partial.
+    """
+    pushes, unreadable = [], 0
+    for repo in repos:
+        try:
+            # `month` is GitHub's own window for this endpoint; 100 pushes to
+            # one repository in a month is far above what is expected here.
+            items = api(
+                f"/repos/{repo['full_name']}/activity"
+                "?activity_type=push&time_period=month&per_page=100"
+            )
+        except urllib.error.HTTPError as err:
+            if err.code in (403, 404) and repo["private"]:
+                unreadable += 1
+                continue
+            raise
+        for item in items:
+            # The workflow's own commits are the bot's, not hers.
+            if (item.get("actor") or {}).get("login") != USER:
+                continue
+            at = datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00"))
+            pushes.append((at, repo["name"], not repo["private"]))
+    return pushes, unreadable
 
 
 def day(date):
@@ -103,17 +112,10 @@ def main():
     now = datetime.now(timezone.utc)
     since = now - timedelta(days=DAYS)
 
-    pushes = []
-    for event in fetch_events():
-        if event.get("type") != "PushEvent":
-            continue
-        # The workflow's own commits are the bot's, not hers.
-        if event.get("actor", {}).get("login") != USER:
-            continue
-        at = datetime.strptime(event["created_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-        if at < since:
-            continue
-        pushes.append((at, event["repo"]["name"].split("/", 1)[-1], bool(event.get("public"))))
+    repos = fetch_repos()
+    private_listed = sum(1 for r in repos if r["private"])
+    found, unreadable = fetch_pushes(repos)
+    pushes = [p for p in found if p[0] >= since]
 
     public = [p for p in pushes if p[2]]
     private = [p for p in pushes if not p[2]]
@@ -124,25 +126,29 @@ def main():
         last_public[name] = max(at, last_public.get(name, at))
     active_days = {at.date() for at, _, _ in pushes}
     repo_count = len(public_by_repo) + len(private_repos)
-    # Seeing a private push is proof enough; otherwise ask.
-    can_see_private = bool(private) or sees_private()
+    # Counted in full only if every private repository listed could be read.
+    private_counted = private_listed > 0 and unreadable == 0
 
     # Log what was seen, names of private repositories excluded: this output is
     # readable by anyone who opens the workflow run.
     print(
         f"{len(pushes)} pushes in {DAYS} days: {len(public)} public in "
         f"{len(public_by_repo)} repos, {len(private)} private in {len(private_repos)} repos. "
-        f"Token: {'yes' if TOKEN else 'no'}. Sees private repos: {'yes' if can_see_private else 'no'}."
+        f"Token: {'yes' if TOKEN else 'no'}. "
+        f"Private repos listed: {private_listed}, unreadable: {unreadable}."
     )
 
+    # The headline only covers what was counted, so it names the public scope
+    # when the private pushes are missing.
+    scope = "" if private_counted else "public "
     if pushes:
         headline = (
-            f"{times(len(pushes))} to {repo_count} "
+            f"{times(len(pushes))} to {repo_count} {scope}"
             f"{'repository' if repo_count == 1 else 'repositories'} on {len(active_days)} "
             f"different {'day' if len(active_days) == 1 else 'days'} in the last {DAYS} days"
         )
     else:
-        headline = f"no pushes in the last {DAYS} days"
+        headline = f"no {scope}pushes in the last {DAYS} days"
 
     lines = [
         "---",
@@ -158,13 +164,10 @@ def main():
         "It shows how much I'm building and how often, not what each repository is.",
         "",
         f"## The last {DAYS} days",
+        f"- {headline[0].upper()}{headline[1:]}.",
     ]
-
     if pushes:
-        lines.append(f"- {headline[0].upper()}{headline[1:]}.")
         lines.append(f"- Most recent push: {day(max(at for at, _, _ in pushes))}.")
-    else:
-        lines.append(f"- No pushes in the last {DAYS} days.")
 
     lines += ["", "## Public repositories"]
     if public_by_repo:
@@ -174,7 +177,7 @@ def main():
         lines.append(f"- No pushes to public repositories in the last {DAYS} days.")
 
     lines += ["", "## Private repositories"]
-    if not can_see_private:
+    if not private_counted:
         lines.append("- Not counted in this update. Most of my work is in private repositories.")
     elif private:
         lines.append(
