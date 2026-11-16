@@ -36,6 +36,7 @@ from pathlib import Path
 USER = os.environ.get("GH_USER", "sandrastephanie")
 TOKEN = os.environ.get("GH_TOKEN", "")
 DAYS = 30
+PUSH_TYPES = {"push", "force_push", "branch_creation"}
 OUT = Path(__file__).resolve().parent.parent / "backend" / "resources" / "github-activity.md"
 
 
@@ -83,7 +84,7 @@ def fetch_pushes(repos):
             # one repository in a month is far above what is expected here.
             items = api(
                 f"/repos/{repo['full_name']}/activity"
-                "?activity_type=push&time_period=month&per_page=100"
+                "?time_period=month&per_page=100"
             )
         except urllib.error.HTTPError as err:
             if err.code in (403, 404) and repo["private"]:
@@ -91,6 +92,11 @@ def fetch_pushes(repos):
                 continue
             raise
         for item in items:
+            # GitHub files the first push of a new branch, and a force push,
+            # under their own types; both are pushes. A merged pull request is
+            # a button on the website, not a push, and is left out.
+            if item.get("activity_type") not in PUSH_TYPES:
+                continue
             # The workflow's own commits are the bot's, not hers.
             if (item.get("actor") or {}).get("login") != USER:
                 continue

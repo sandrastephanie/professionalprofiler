@@ -23,11 +23,7 @@ export class ErrorBoundary extends Component<
     if (this.state.failed) {
       return (
         <p style={{ padding: "16px" }}>
-          The chat didn&apos;t load. You can reach it at{" "}
-          <a href="https://chat.mringdal.com">
-            chat.mringdal.com
-          </a>
-          .
+          The chat didn&apos;t load. Reload the page to try again.
         </p>
       );
     }
