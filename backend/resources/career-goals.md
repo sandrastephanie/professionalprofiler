@@ -1,12 +1,18 @@
 ---
-title: Availability and next step
+title: Career Goals
 type: career-goals
-tags: [availability, career-goals, next-role]
-summary: Available from 1 December 2026, after being released from Likvido because of a merger. Under contract until then.
+tags: [career-goals, growth, learning, ambition, motivation, next-role, product-management, fintech]
+summary: What Sandra wants next - a place where she keeps learning and growing, is challenged and inspired to take on new projects; she's ambitious and has always left jobs for something more exciting.
 ---
 
-## Availability
-Available from 1 December 2026. I'm under contract with Likvido until then.
+## what i'm looking for
+i thrive when i learn and grow. i want a work environment where i'm challenged and inspired to take on new projects - and where there's always a next thing to figure out.
 
-## Why I'm leaving Likvido
-Likvido is merging with another Visma company, and I was released from 1 October 2026 as part of that. The merger is the only reason - nothing personal.
+## ambition
+i'm ambitious, and it's no secret to any of my former employers: when i've left a job, it's because someone offered me something more exciting and better. (the exception is Likvido, where the merger made the decision for me.)
+
+## where i fit best
+product roles where the domain is complex and the job is to make it simple - fintech and B2B SaaS especially - and where the commercial side matters as much as the product. see "Role Fit" for how my background maps to specific titles.
+
+## what i bring on day one
+a brain that can't sit still, hands-on product skills, a strong commercial instinct and a lot of curiosity.

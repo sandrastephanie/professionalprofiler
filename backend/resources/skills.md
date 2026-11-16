@@ -2,94 +2,102 @@
 title: Skills
 type: skills
 tags: []
-summary: Expertise areas, tools by category, spoken languages and areas of interest. The tag list below is generated from experience and projects.
+summary: Sandra's expertise and tool stack (product, UX, marketing automation, data and analytics, AI tools), skills derived from her experience, plus spoken languages and interests.
 ---
 
 ## Expertise
-UX analysis and design · marketing and sales automation · event planning and execution · content planning and execution · PR and communication · B2B branding and positioning · conversion and funnel metrics
+- product management in fintech and B2B SaaS: scoping, prioritisation, workflow and automation design
+- UX analysis and design, user research (qualitative and quantitative), CRO and funnel metrics
+- B2B branding and positioning, product marketing and go-to-market
+- marketing and sales automation, demand and lead generation
+- data and analytics: tracking setup, GA4, dashboards
+- content planning and execution, PR and communication, event planning and execution
+- AI-assisted prototyping and building (Claude Code)
 
-## Tools
-- **Web & UX:** Webflow, Umbraco, WordPress, Wix, Squarespace, Hotjar, Google Tag Manager, Unbounce, Figma, GitHub
-- **Marketing:** HubSpot, Mailchimp, Meta Business Manager, Google Business, LinkedIn Campaign Manager, Microsoft Ads
-- **Data & Analytics:** Universal Analytics/GA4, Google Search Console, Google Data Studio, Google Ads, Ahrefs, AccuRanker, Dreamdata, Fibbler, Excel
-- **Graphic Design:** Photoshop, InDesign, Illustrator, Premiere Pro, Canva, Fresco, Lightroom
-- **Project Management & AI:** Asana, Miro, Mural, Pomodoro, TimeLog, Claude Code, ChatGPT, Cursor
-- **CRM & Sales:** HubSpot, Leadfeeder, Vainu
-
-## Spoken languages
-English, Danish and Swedish. Simple, entry-level Tamil, Italian and French.
-
-## Areas of interest
-Fintech, SaaS, AI, women in tech, women in STEM, female finance, product management in tech.
+## Tool stack
+- **Product, project management & AI:** Claude Code, Claude, Cursor, ChatGPT, GitHub, Asana, Miro, Mural, TimeLog
+- **Web & UX:** Figma, Hotjar, Google Tag Manager, Webflow, Umbraco, WordPress, Wix, Squarespace, Unbounce
+- **Data & analytics:** GA4 / Universal Analytics, Looker Studio (Google Data Studio), Google Search Console, Google Ads, Ahrefs, AccuRanker, Dreamdata, Fibbler, Excel
+- **CRM, sales & marketing:** HubSpot, Mailchimp, Leadfeeder, Vainu, Meta Business Manager, LinkedIn Campaign Manager, Microsoft Ads, Google Business
+- **Graphic design:** Photoshop, InDesign, Illustrator, Premiere Pro, Lightroom, Fresco, Canva
 
 <!-- AUTO-GENERATED-SKILLS-START: do not hand-edit below this line, run `python -m app.build_skills` (from backend/) instead -->
 
 ## Technical Skills
 
-- **copywriting** — Early roles (Kopenhagen Fur, Arket), Product Manager @ Likvido (Visma), SEO Copywriter @ IIH Nordic
+- **b2b-marketing** — Digital Acquisition Specialist @ Nordiske Medier, Head of Marketing @ iEDI, Marketing Manager @ Corpay One, SEO Copywriter @ IIH Nordic
+- **b2b-saas** — Head of Marketing @ iEDI, Marketing Manager @ Corpay One, Product Manager @ Likvido (Visma)
+- **content-strategy** — Digital Acquisition Specialist @ Nordiske Medier, Marketing Manager @ Corpay One, SEO Copywriter @ IIH Nordic
 - **cro** — Digital Acquisition Specialist @ Nordiske Medier, Marketing Manager @ Corpay One, SEO Copywriter @ IIH Nordic
-- **fintech** — Marketing Manager @ Corpay One, Product Manager @ Likvido (Visma), SEO Copywriter @ IIH Nordic
-- **b2b** — Digital Acquisition Specialist @ Nordiske Medier, SEO Copywriter @ IIH Nordic
-- **b2b-saas** — Head of Marketing @ iEDI, Product Manager @ Likvido (Visma)
 - **brand** — Head of Marketing @ iEDI, Marketing Manager @ Corpay One
-- **content-planning** — Digital Acquisition Specialist @ Nordiske Medier, SEO Copywriter @ IIH Nordic
+- **copywriting** — Product Manager @ Likvido (Visma), SEO Copywriter @ IIH Nordic
 - **data-analytics** — Digital Acquisition Specialist @ Nordiske Medier, Marketing Manager @ Corpay One
-- **events** — Early roles (Kopenhagen Fur, Arket), Marketing Manager @ Corpay One
+- **demand-generation** — Digital Acquisition Specialist @ Nordiske Medier, Marketing Manager @ Corpay One
+- **fintech** — Marketing Manager @ Corpay One, Product Manager @ Likvido (Visma)
+- **hubspot** — Head of Marketing @ iEDI, Marketing Manager @ Corpay One
 - **lead-generation** — Digital Acquisition Specialist @ Nordiske Medier, Marketing Manager @ Corpay One
+- **marketing-automation** — Head of Marketing @ iEDI, Marketing Manager @ Corpay One
 - **partner-marketing** — Head of Marketing @ iEDI, Marketing Manager @ Corpay One
-- **pr** — Early roles (Kopenhagen Fur, Arket), Marketing Manager @ Corpay One
 - **seo** — Digital Acquisition Specialist @ Nordiske Medier, SEO Copywriter @ IIH Nordic
+- **user-journeys** — Digital Acquisition Specialist @ Nordiske Medier, SEO Copywriter @ IIH Nordic
+- **ux** — Marketing Manager @ Corpay One, Product Manager @ Likvido (Visma)
 - **webinars** — Head of Marketing @ iEDI, Marketing Manager @ Corpay One
+- **ai-tools** — Building with Claude Code, Product Manager @ Likvido (Visma)
+- **claude-code** — Building with Claude Code, Product Manager @ Likvido (Visma)
+- **prototyping** — Building with Claude Code, Product Manager @ Likvido (Visma)
+- **websites** — Building with Claude Code, Head of Marketing @ iEDI
+- **accounts-payable** — Marketing Manager @ Corpay One
+- **accounts-receivable** — Product Manager @ Likvido (Visma)
+- **activation** — Product Manager @ Likvido (Visma)
 - **affiliate-marketing** — Marketing Manager @ Corpay One
+- **agency** — SEO Copywriter @ IIH Nordic
 - **agency-management** — Marketing Manager @ Corpay One
-- **ai** — Product Manager @ Likvido (Visma)
-- **analytics** — Early roles (Kopenhagen Fur, Arket)
 - **api-partners** — Product Manager @ Likvido (Visma)
+- **automation** — Product Manager @ Likvido (Visma)
 - **banking** — SEO Copywriter @ IIH Nordic
-- **claude-code** — Product Manager @ Likvido (Visma)
 - **client-communication** — SEO Copywriter @ IIH Nordic
 - **crm** — Head of Marketing @ iEDI
-- **customer-service** — Early roles (Kopenhagen Fur, Arket)
 - **debt-collection** — Product Manager @ Likvido (Visma)
-- **demand-generation** — Marketing Manager @ Corpay One
-- **digital-acquisition** — Digital Acquisition Specialist @ Nordiske Medier
 - **edi** — Head of Marketing @ iEDI
 - **email-automation** — Head of Marketing @ iEDI
+- **engineering-collaboration** — Product Manager @ Likvido (Visma)
+- **events** — Marketing Manager @ Corpay One
+- **finance** — SEO Copywriter @ IIH Nordic
 - **ga4** — Digital Acquisition Specialist @ Nordiske Medier
-- **github** — Product Manager @ Likvido (Visma)
 - **go-to-market** — Head of Marketing @ iEDI
 - **google-analytics** — Digital Acquisition Specialist @ Nordiske Medier
-- **graphic-design** — Early roles (Kopenhagen Fur, Arket)
-- **head-of-marketing** — Head of Marketing @ iEDI
-- **hubspot** — Marketing Manager @ Corpay One
 - **looker-studio** — Digital Acquisition Specialist @ Nordiske Medier
-- **marketing** — Early roles (Kopenhagen Fur, Arket)
-- **marketing-automation** — Marketing Manager @ Corpay One
-- **marketing-manager** — Marketing Manager @ Corpay One
-- **notifications** — Product Manager @ Likvido (Visma)
+- **media** — Digital Acquisition Specialist @ Nordiske Medier
 - **paid-media** — Digital Acquisition Specialist @ Nordiske Medier
 - **payment-providers** — Product Manager @ Likvido (Visma)
 - **positioning** — Head of Marketing @ iEDI
+- **pr** — Marketing Manager @ Corpay One
 - **product-management** — Product Manager @ Likvido (Visma)
-- **product-manager** — Product Manager @ Likvido (Visma)
 - **product-marketing** — Head of Marketing @ iEDI
-- **prototyping** — Product Manager @ Likvido (Visma)
+- **rebrand** — Marketing Manager @ Corpay One
 - **referral-programme** — Head of Marketing @ iEDI
-- **retail** — Early roles (Kopenhagen Fur, Arket)
+- **regulated-domain** — Product Manager @ Likvido (Visma)
 - **retargeting** — Digital Acquisition Specialist @ Nordiske Medier
 - **retention** — Head of Marketing @ iEDI
-- **saas** — SEO Copywriter @ IIH Nordic
-- **sales** — Early roles (Kopenhagen Fur, Arket)
 - **sales-alignment** — Marketing Manager @ Corpay One
-- **social-media** — Early roles (Kopenhagen Fur, Arket)
 - **supply-chain** — Head of Marketing @ iEDI
 - **technical-seo** — Digital Acquisition Specialist @ Nordiske Medier
 - **tracking** — Digital Acquisition Specialist @ Nordiske Medier
-- **ux** — Product Manager @ Likvido (Visma)
 - **vendor-management** — Product Manager @ Likvido (Visma)
-- **website** — Marketing Manager @ Corpay One
-- **websites** — Head of Marketing @ iEDI
 - **whitepapers** — SEO Copywriter @ IIH Nordic
-- **workflow-automation** — Product Manager @ Likvido (Visma)
+- **workflow-design** — Product Manager @ Likvido (Visma)
+- **chatgpt** — Building with Claude Code
+- **cursor** — Building with Claude Code
+- **github** — Building with Claude Code
+- **hands-on** — Building with Claude Code
+- **pull-requests** — Building with Claude Code
+- **technical-exploration** — Building with Claude Code
+- **web-development** — Building with Claude Code
 
 <!-- AUTO-GENERATED-SKILLS-END -->
+
+## Spoken languages
+Danish (native), English (native), Swedish (professional working), Tamil (limited working), Italian (limited working)
+
+## Areas of interest
+fintech, SaaS, AI, product management in tech, women in tech and STEM, female finance, psychology and why people behave the way they do, entrepreneurship, solo travel, reading, the sims
