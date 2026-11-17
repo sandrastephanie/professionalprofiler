@@ -133,7 +133,9 @@
   /* The bubbles. The input follows the size too, but never below 1rem. */
   --chat-font-message: var(--chat-font);
   --chat-font-message-weight: var(--chat-font-weight);
-  --chat-font-message-size: 1.125rem;
+  /* 1rem: Michael's 1.125rem read as too large on this light page. Not below
+     1rem, which the input follows: under 16px iOS zooms the page on focus. */
+  --chat-font-message-size: 1rem;
 
   /* The text being typed. */
   --chat-font-input: var(--chat-font);
